@@ -686,11 +686,11 @@
         "--shadow-popover",
         "--shape-2xl",
         "--shape-md",
+        "--shape-sheet",
         "--shape-xl",
         "--sheet-bg",
         "--sheet-bg-hover",
         "--sheet-bg-pressed",
-        "--sheet-radius",
         "--sheet-shadow",
         "--sheet-tile-bg",
         "--sheet-tile-bg-hover",
@@ -883,10 +883,10 @@
         "--color-surface-container",
         "--color-surface-hover",
         "--color-surface-pressed",
+        "--shape-sheet",
         "--sheet-bg",
         "--sheet-bg-hover",
         "--sheet-bg-pressed",
-        "--sheet-radius",
         "--sheet-shadow"
       ]
     },
@@ -940,10 +940,10 @@
         "--color-surface",
         "--color-surface-hover",
         "--color-surface-pressed",
+        "--shape-sheet",
         "--sheet-bg",
         "--sheet-bg-hover",
         "--sheet-bg-pressed",
-        "--sheet-radius",
         "--sheet-shadow"
       ]
     },
@@ -1608,6 +1608,7 @@
         "--color-surface-inverse-pressed",
         "--layout-dialog",
         "--shape-md",
+        "--shape-round",
         "--size-touch",
         "--toast-bg",
         "--toast-fg"
@@ -1737,6 +1738,7 @@
         "--color-surface-container-hover",
         "--color-surface-overlay",
         "--field-height",
+        "--shape-round",
         "--size-touch"
       ]
     },
@@ -1955,6 +1957,7 @@
         "--cta-bg-hover",
         "--cta-bg-pressed",
         "--cta-fg",
+        "--shape-round",
         "--size-icon-lg"
       ]
     }
@@ -2888,12 +2891,6 @@
       "light": "1.5rem"
     },
     {
-      "name": "--radius-sheet",
-      "tier": "primitive",
-      "type": "dimension",
-      "light": "1.75rem"
-    },
-    {
       "name": "--radius-2xl",
       "tier": "primitive",
       "type": "dimension",
@@ -3747,18 +3744,6 @@
       }
     },
     {
-      "name": "--color-on-surface-subtle",
-      "tier": "semantic",
-      "type": "color",
-      "light": "var(--color-grey-600)",
-      "role": "Tertiary text. Still 4.5:1 on every surface; never lighter.",
-      "dark": "var(--color-grey-300)",
-      "hex": {
-        "light": "#595c62",
-        "dark": "#acb0b5"
-      }
-    },
-    {
       "name": "--color-on-surface-disabled",
       "tier": "semantic",
       "type": "color",
@@ -4427,13 +4412,21 @@
       "name": "--shape-sheet",
       "tier": "semantic",
       "type": "dimension",
-      "light": "var(--radius-sheet)"
+      "light": "var(--shape-2xl)",
+      "role": "A bottom sheet's top corners: the 2xl corner, the picker's, so every phone sheet shares one corner (owner, 2026-11-01). The one name for a sheet's rounding (D378)."
     },
     {
       "name": "--shape-2xl",
       "tier": "semantic",
       "type": "dimension",
       "light": "var(--radius-2xl)"
+    },
+    {
+      "name": "--shape-round",
+      "tier": "semantic",
+      "type": "dimension",
+      "light": "var(--radius-round)",
+      "role": "A pill or a circle."
     },
     {
       "name": "--size-touch",
@@ -4964,6 +4957,13 @@
       "light": "var(--space-6)"
     },
     {
+      "name": "--player-speed-readout-size",
+      "tier": "component",
+      "type": "dimension",
+      "light": "4rem",
+      "role": "The speed screen's number: twice Default's display size, so the number is the screen and the buttons its edges (owner, 2026-11-02). The same in every mood, so it fits between them."
+    },
+    {
       "name": "--player-bg",
       "tier": "component",
       "type": "color",
@@ -5336,13 +5336,6 @@
       "role": "The box's side, its 2px outline included. A row that ends on a check sets the target past the edge by half of what the target adds to it, so the box meets the edge."
     },
     {
-      "name": "--sheet-radius",
-      "tier": "component",
-      "type": "dimension",
-      "light": "var(--shape-2xl)",
-      "role": "A bottom sheet's top corners: 32px, the picker's, so every phone sheet shares one corner (owner, 2026-11-01)."
-    },
-    {
       "name": "--sheet-padding",
       "tier": "component",
       "type": "dimension",
@@ -5665,6 +5658,20 @@
       "type": "dimension",
       "light": "3.5rem",
       "role": "Top bar, before the top safe area is added."
+    },
+    {
+      "name": "--app-bar-wordmark-size",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--font-size-label-lg)",
+      "role": "The wordmark's type size, a step over the body."
+    },
+    {
+      "name": "--queue-title-size",
+      "tier": "component",
+      "type": "dimension",
+      "light": "var(--font-size-label-lg)",
+      "role": "The open queue's title, the wordmark's size."
     },
     {
       "name": "--nav-bar-height",

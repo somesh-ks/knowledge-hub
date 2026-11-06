@@ -233,5 +233,6 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D374 | No podcast menu offers Stop sharing | amends D153, D214, D369 |
 | D375 | Production deploys wait for five merges, three hours, or `[deploy]` | amends D173 |
 | D376 | A rewrite carries the stories its run gathered and reads only the quick sources again | active |
+| D378 | Stylesheets read type sizes and corners through their roles; one sheet corner, one pill | active |
 
 ---

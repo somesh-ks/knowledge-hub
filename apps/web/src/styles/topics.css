@@ -68,7 +68,7 @@
 }
 
 .topics .row-action .icon-glyph {
-  color: var(--color-on-surface-subtle);
+  color: var(--color-on-surface-muted);
 }
 
 .topics-added {
@@ -166,7 +166,7 @@
 .topic-card-foot .multiselect-trigger {
   /* Its shape is a settings row's value (multiselect.css, the pill): one control, one shape (owner,
      2026-10-23, D167; on 2026-10-22 it took the card's inner radius). */
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-regular);
 }
 
@@ -251,7 +251,7 @@
   flex: none;
   place-items: center;
   width: var(--size-icon-lg);
-  font-size: var(--font-size-title);
+  font-size: var(--text-title-size);
   line-height: 1;
 }
 
@@ -432,7 +432,7 @@
   width: auto;
   min-height: calc(var(--size-touch) - var(--space-2));
   padding-inline: var(--space-4);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
 }
 
 /* The button is a size down; its target is still 44px. */
@@ -598,7 +598,7 @@
   border-radius: inherit;
   background: var(--color-surface-container);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   font-weight: var(--font-weight-medium);
   line-height: 1;
 }
@@ -630,7 +630,7 @@
   align-items: baseline;
   min-width: 0;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
 }
@@ -677,7 +677,7 @@
   column-gap: var(--space-2);
   min-width: 0;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
 }
 
@@ -690,7 +690,7 @@
 .source-name {
   min-width: 0;
   overflow: hidden;
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
@@ -705,7 +705,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -736,7 +736,7 @@
   width: var(--size-touch);
   height: var(--size-touch);
   margin-inline-end: calc(var(--space-2) * -1);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   cursor: pointer;
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
@@ -794,7 +794,7 @@
   align-items: center;
   gap: var(--space-1);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
 }
@@ -951,7 +951,7 @@
 /* It wears the fields' labels above them (manage.css .manage-field > label). */
 .edit-address-label {
   margin: 0;
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
 }
@@ -1028,7 +1028,7 @@
 
 .score-card-title {
   margin: 0;
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
@@ -1036,7 +1036,7 @@
 .score-card-rating {
   margin: 0;
   /* The title's size, so the rating reads as part of the heading (owner, 2026-10-24). */
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
   font-variant-numeric: tabular-nums;
@@ -1046,7 +1046,7 @@
   display: grid;
   gap: var(--space-4);
   margin: 0;
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
 }
 
 .score-parts > div {
@@ -1070,7 +1070,7 @@
 .part-meter {
   flex: 1 1 auto;
   height: var(--space-1);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: linear-gradient(
     90deg,
     var(--color-accent) calc(var(--part, 0) * 100%),
@@ -1109,14 +1109,14 @@
   width: var(--space-12);
   height: var(--space-12);
   margin-block-end: var(--space-2);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-accent-container);
   color: var(--color-on-accent-container);
 }
 
 .score-card-empty-title {
   margin: 0;
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
 }
@@ -1125,7 +1125,7 @@
   max-width: 28ch;
   margin: 0;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-body);
   text-wrap: balance;
 }
@@ -1171,7 +1171,7 @@
 
 /* The card's tile is larger, and so is its letter. */
 .source-card .source-initial {
-  font-size: var(--font-size-section);
+  font-size: var(--text-heading-size);
 }
 
 .source-card-title {
@@ -1181,7 +1181,7 @@
 
 .source-card-name {
   overflow: hidden;
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
@@ -1196,7 +1196,7 @@
 .source-card-reason {
   margin: 0;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
 }
 
@@ -1207,7 +1207,7 @@
   gap: var(--space-2);
   margin: 0;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
 }
 
@@ -1272,7 +1272,7 @@
 
 /* A new topic's scope in the Add panel: a field like the others, its label worn as theirs. */
 .topics-scope-label {
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
 }
@@ -1303,7 +1303,7 @@
   display: none;
   min-width: 0;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
 }
@@ -1349,7 +1349,7 @@
   /* The disc's edge meets the checkboxes' edge in the list above; the 44px target reaches into the
      gutter by the disc's inset. */
   margin-inline-end: calc(var(--space-1) * -1);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   color: var(--color-on-surface-muted);
 }
 
@@ -1367,7 +1367,7 @@
   position: absolute;
   inset: var(--space-1);
   z-index: var(--z-beneath);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: transparent;
   transition: background-color var(--duration-hover) var(--ease-hover);
 }
@@ -1489,7 +1489,7 @@
 .filter-row > .topic-add-source {
   min-height: var(--field-height);
   padding-inline: var(--space-6);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
 }
 
 .filter-row > .topic-add-source::after {
@@ -1574,7 +1574,7 @@ html:has(.source-filter[data-chips]) {
 .panel-suggested-head {
   margin: 0;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-regular);
 }
 
@@ -1672,7 +1672,7 @@ html:has(.source-filter[data-chips]) {
   padding-block: var(--space-2);
   background: var(--emoji-bg);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   /* An h3, so the browser would make it bold: no heading is bold, anywhere (D125, 2026-10-22). */
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
@@ -1696,8 +1696,8 @@ html:has(.source-filter[data-chips]) {
   /* Optical centre (owner, 2026-10-24): the line sits on the UI font's baseline, so the emoji font's
      ink rode 0.05em high (1px at 20px, measured on Segoe UI Emoji across the grid). The pad is a
      font metric, the same for every emoji; centred, the ink lands within a device pixel. */
-  padding-block-start: calc(var(--font-size-title) * 0.1);
-  font-size: var(--font-size-title);
+  padding-block-start: calc(var(--text-title-size) * 0.1);
+  font-size: var(--text-title-size);
   line-height: 1;
 }
 
@@ -1715,7 +1715,7 @@ html:has(.source-filter[data-chips]) {
   margin: 0;
   padding: var(--space-4) var(--space-2);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
 }
 
 /* The 2026-10-25 grid that put the stop's name over the slider was reverted on 2026-10-27 at the

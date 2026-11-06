@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { SYSTEM_PATHS } from "../../../../scripts/designSystemGate.mjs";
 import { COMPONENTS } from "../design-system/registry";
 
 /**
@@ -1245,6 +1246,25 @@ const PAGE_OVERRIDES: string[] = [
 ];
 
 describe("design-system components in page stylesheets", () => {
+  it("read a type size or a corner only through its role (D378)", () => {
+    // A direct read skips the role, so a change to the role never reaches it: the lines that read
+    // --font-size-meta kept 14px when the meta role moved to 1rem, and a --radius-* corner stays
+    // Default's in every mood. Pages read --text-*-size and --shape-*; the system's own sheets bind
+    // the primitives, and no sheet reads the meta size but through its role.
+    const STYLES_DIR = "apps/web/src/styles/";
+    const system = new Set(
+      SYSTEM_PATHS.filter((path) => path.startsWith(STYLES_DIR)).map((path) =>
+        path.slice(STYLES_DIR.length),
+      ),
+    );
+    const found = ownCss().flatMap(([file, css]) =>
+      [...css.matchAll(/var\(\s*(--(?:font-size|radius)-[\w-]+)/g)]
+        .filter(([, name]) => !system.has(file) || name === "--font-size-meta")
+        .map(([, name]) => `${file} reads ${name}`),
+    );
+    expect(found).toEqual([]);
+  });
+
   it("are restyled only where the debt list says", () => {
     const found: string[] = [];
     for (const component of COMPONENTS) {

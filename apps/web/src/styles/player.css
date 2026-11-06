@@ -374,7 +374,7 @@
   border-radius: var(--button-radius);
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
   translate: -50% 0;
@@ -412,7 +412,7 @@
   min-height: calc(
     var(--text-title-size) *
     var(--text-title-leading) +
-    var(--font-size-label) *
+    var(--text-label-size) *
     var(--font-leading-label) +
     var(--size-touch) +
     var(--space-1) *
@@ -447,7 +447,7 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
   text-wrap: balance;
   -webkit-box-orient: vertical;
@@ -494,7 +494,7 @@
   gap: var(--space-4);
   padding-block: var(--space-8);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   text-align: center;
 }
 
@@ -803,7 +803,7 @@
 .dock-caption {
   overflow: hidden;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -817,7 +817,7 @@
 
 .dock-title {
   overflow: hidden;
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   text-overflow: ellipsis;
@@ -986,7 +986,7 @@
   height: var(--range-thumb);
   margin-block-start: calc(var(--mini-player-progress-height) - var(--range-thumb) / 2);
   border: 0;
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-accent);
   appearance: none;
   opacity: 0;
@@ -999,7 +999,7 @@
   width: var(--range-thumb);
   height: var(--range-thumb);
   border: 0;
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-accent);
   /* Firefox centres the thumb in the strip; it moves up onto the line like the one above. */
   transform: translateY(calc(var(--mini-player-progress-height) - var(--space-2)));
@@ -1055,7 +1055,7 @@
   border-radius: var(--scrubber-bubble-radius);
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
-  font-size: var(--font-size-caption);
+  font-size: var(--text-caption-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-caption);
   pointer-events: none;
@@ -1092,7 +1092,7 @@
 
 .dock-volume-level::-webkit-slider-runnable-track {
   height: var(--scrubber-track);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: linear-gradient(
     to right,
     var(--color-accent) calc(var(--level, 1) * 100%),
@@ -1102,13 +1102,13 @@
 
 .dock-volume-level::-moz-range-track {
   height: var(--scrubber-track);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-border-control);
 }
 
 .dock-volume-level::-moz-range-progress {
   height: var(--scrubber-track);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-accent);
 }
 
@@ -1117,7 +1117,7 @@
   height: var(--range-thumb);
   margin-block-start: calc((var(--scrubber-track) - var(--range-thumb)) / 2);
   border: 0;
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-accent);
   appearance: none;
   transition: scale var(--duration-hover) var(--ease-out);
@@ -1127,7 +1127,7 @@
   width: var(--range-thumb);
   height: var(--range-thumb);
   border: 0;
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-accent);
   transition: scale var(--duration-hover) var(--ease-out);
 }
@@ -1172,7 +1172,7 @@
   place-items: center;
   width: var(--mini-player-control-size);
   height: var(--mini-player-control-size);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   /* A held thumb that drifts must not turn into a pan that cancels the press (heldTap.ts). */
   touch-action: none;
 }
@@ -1679,7 +1679,7 @@
   inset-inline-start: calc(var(--scrubber-thumb) / -2);
   width: var(--scrubber-thumb);
   height: var(--scrubber-thumb);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-accent);
   box-shadow: 0 0 0 var(--scrubber-thumb-ring) var(--color-surface);
   /* Let go, it settles quickly and without overshoot. */
@@ -1715,7 +1715,7 @@
   border-radius: var(--scrubber-bubble-radius);
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
-  font-size: var(--font-size-caption);
+  font-size: var(--text-caption-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-caption);
   white-space: nowrap;
@@ -1758,7 +1758,7 @@
   margin-block-start: calc(var(--space-2) * -1);
   pointer-events: none;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   font-weight: var(--font-weight-medium);
 }
 
@@ -1779,7 +1779,7 @@
   place-items: center;
   width: var(--control-size-md);
   height: var(--control-size-md);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   color: var(--color-on-surface);
 }
 
@@ -1825,7 +1825,7 @@
    menu. It wears the skips' size and ink, its words in the label size. */
 .transport-speed {
   display: none;
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-medium);
   line-height: 1;
 }
@@ -1921,7 +1921,7 @@
 
 .script-speaker {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   font-weight: var(--font-weight-medium);
   letter-spacing: var(--font-tracking-caption);
 }
@@ -1941,7 +1941,7 @@
    (above) still wins. */
 .script-turn[data-tone] .script-story {
   color: var(--color-on-surface);
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   line-height: var(--font-leading-label);
 }
 
@@ -1963,7 +1963,7 @@
 
 .script-text {
   color: var(--color-on-surface);
-  font-size: var(--font-size-reading);
+  font-size: var(--text-reading-size);
   font-weight: var(--text-reading-weight);
   line-height: var(--font-leading-reading);
   transition: color var(--duration-state) var(--ease-out);
@@ -2042,7 +2042,7 @@
   /* The Stories rows' own inset, so the words start where theirs do (2026-10-21). */
   padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
 }
 
 /*
@@ -2121,7 +2121,7 @@
   border-radius: var(--button-radius);
   background: var(--color-surface-inverse);
   color: var(--color-on-surface-inverse);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-medium);
   transition:
     background-color var(--duration-press-in) var(--ease-out),
@@ -2273,7 +2273,7 @@
   border-radius: var(--button-radius);
   color: var(--color-accent);
   /* The story's size, so the block under the title keeps to two type sizes. */
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-medium);
   text-decoration: none;
   transition: background-color var(--duration-hover) var(--ease-hover);
@@ -2303,7 +2303,7 @@
   padding-block: var(--space-4) var(--space-2);
   padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   font-weight: var(--font-weight-regular);
 }
 
@@ -2336,7 +2336,7 @@
 .story-row-title {
   display: -webkit-box;
   overflow: hidden;
-  font-size: var(--font-size-reading);
+  font-size: var(--text-reading-size);
   font-weight: var(--text-reading-weight);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -2344,7 +2344,7 @@
 
 .story-row-time {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   font-weight: var(--font-weight-medium);
 }
 
@@ -2373,7 +2373,7 @@
 
 .story-rows > [data-open] .script-turns .script-turn .script-text {
   color: var(--color-on-accent-container);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   line-height: var(--font-leading-body);
 }
 
@@ -2465,7 +2465,7 @@
 
 .player-upnext-hint {
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
 }
 
 /* ------------------------------------------------------------------ the collapse chevron */

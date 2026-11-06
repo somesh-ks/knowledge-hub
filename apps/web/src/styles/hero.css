@@ -215,7 +215,7 @@
   max-width: var(--layout-measure);
   padding-block: var(--space-2);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-body);
 }
 

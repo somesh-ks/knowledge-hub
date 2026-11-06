@@ -67,7 +67,7 @@
   height: var(--space-1);
   margin-bottom: calc(var(--space-2) * 2);
   overflow: hidden;
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--rail-track);
 }
 
@@ -99,7 +99,7 @@
   /* Two lines at most: an episode can carry a long title, and a tall card breaks the row. */
   display: -webkit-box;
   overflow: hidden;
-  font-size: var(--font-size-body);
+  font-size: var(--text-body-size);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-leading-label);
   -webkit-box-orient: vertical;
@@ -126,7 +126,7 @@
   display: -webkit-box;
   overflow: hidden;
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -211,7 +211,7 @@
   gap: var(--space-2);
   height: var(--field-height);
   padding-inline: var(--space-4);
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: var(--color-surface-container);
   color: var(--color-on-surface-muted);
   cursor: text;
@@ -245,7 +245,7 @@
 .search-field > input::placeholder {
   color: var(--color-on-surface-muted);
   /* One hint size in every field (2026-11-02, field.css): a step under the typed text. */
-  font-size: var(--font-size-meta);
+  font-size: var(--text-meta-size);
   opacity: 1;
 }
 
@@ -270,7 +270,7 @@
   height: var(--size-touch);
   margin-block: auto;
   border: 0;
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: none;
   color: var(--color-on-surface-muted);
 }
@@ -451,7 +451,7 @@
   height: var(--chip-height);
   padding: 0;
   border: 0;
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   background: transparent;
   color: var(--color-on-surface-muted);
   transition:
@@ -778,7 +778,7 @@ html[data-library-page="empty"] {
 /* The same step as a chapter's heading (briefing.css), which it follows on the page. */
 .shelf-head > h2 {
   font-family: var(--text-heading-family);
-  font-size: var(--font-size-section);
+  font-size: var(--text-heading-size);
   font-weight: var(--text-heading-weight);
   line-height: var(--text-heading-leading);
 }
@@ -855,7 +855,7 @@ html[data-library-page="empty"] {
    down; the button is a compact glyph in a full touch target, centred on the title's first line.
    The title reserves the glyph's room, so the button appearing moves nothing. */
 .card-menu {
-  --title-line: calc(var(--font-size-body) * var(--font-leading-label));
+  --title-line: calc(var(--text-body-size) * var(--font-leading-label));
   position: absolute;
   inset-block-start: calc(100cqw + var(--space-4) - (var(--size-touch) - var(--title-line)) / 2);
   inset-inline-end: 0;

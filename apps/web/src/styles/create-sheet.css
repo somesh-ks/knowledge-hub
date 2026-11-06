@@ -34,7 +34,7 @@
     height: var(--nav-side-item-height);
     padding-inline: calc(var(--space-4) - var(--stroke-hairline));
     border: var(--stroke-hairline) solid transparent;
-    font-size: var(--font-size-label);
+    font-size: var(--text-label-size);
     font-weight: var(--font-weight-medium);
     line-height: var(--font-leading-label);
     text-decoration: none;
@@ -100,7 +100,7 @@
      text fields, D54). The border stays transparent so forced colours still draw the button's edge. */
   border: var(--stroke-hairline) solid transparent;
   /* A pill, as every control is (D186): folded, a circle. */
-  border-radius: var(--radius-round);
+  border-radius: var(--shape-round);
   /* The primary fill, the filled button's and the hero's Play (owner, 2026-11-04: "the fab and
      primary buttons like play have different colors which shouldnt be the case"); it was the
      tonal step, accent-container-high, a lighter colour beside the Play it repeats. */
@@ -176,7 +176,7 @@ html[data-dialog-open] .create-fab {
   max-width: 6rem;
   margin-inline: var(--space-2) var(--space-1);
   overflow: hidden;
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   font-weight: var(--font-weight-medium);
   line-height: var(--font-leading-label);
   white-space: nowrap;
@@ -364,7 +364,7 @@ dialog.share-dialog:focus-visible {
   margin-block: var(--space-2) var(--space-4);
   padding-inline: var(--space-4);
   color: var(--color-on-surface-muted);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   line-height: var(--font-leading-label);
   overflow-wrap: anywhere;
 }
@@ -379,7 +379,7 @@ dialog.share-dialog:focus-visible {
   border-radius: var(--shape-sm);
   background: var(--color-surface-container);
   color: var(--color-on-surface);
-  font-size: var(--font-size-label);
+  font-size: var(--text-label-size);
   text-overflow: ellipsis;
 }
 

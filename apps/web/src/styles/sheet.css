@@ -87,8 +87,8 @@ dialog.sheet-side[data-started]:not([open])::backdrop {
    from 40rem the panel's near corners are round already. */
 @media (width < 40rem) {
   dialog.sheet-side {
-    border-start-start-radius: min(var(--sheet-radius), var(--sheet-pull, 0px));
-    border-start-end-radius: min(var(--sheet-radius), var(--sheet-pull, 0px));
+    border-start-start-radius: min(var(--shape-sheet), var(--sheet-pull, 0px));
+    border-start-end-radius: min(var(--shape-sheet), var(--sheet-pull, 0px));
   }
 }
 
@@ -352,8 +352,8 @@ dialog.sheet-side .create-submit > .button-filled {
   dialog.sheet-side {
     inset: 0 0 0 auto;
     width: min(32rem, calc(100% - var(--space-12)));
-    border-start-start-radius: var(--sheet-radius);
-    border-end-start-radius: var(--sheet-radius);
+    border-start-start-radius: var(--shape-sheet);
+    border-end-start-radius: var(--shape-sheet);
     box-shadow: var(--sheet-shadow);
   }
 
