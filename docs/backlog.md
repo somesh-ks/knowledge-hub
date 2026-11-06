@@ -48,7 +48,7 @@ Cold items offloaded from active state. Each item maintains an explicit testable
 ### UI Polish & Responsive Layout
 - **PWA device theme hand-off (D123)**: Android system bar color after reinstall; splash to launch-screen transition.
   - Closed when: both transitions match theme cleanly on Android device.
-- **Settings switches color flash**: Settings switches display track color until script initializes; October 6-7 audio says "Dispatch".
+- **Settings switches color flash**: Settings switches display track color until script initializes.
   - Closed when: owner rules on each visual detail.
 - **Link preview cards (D153 stage 0)**: Social share previews for briefing links.
   - Closed when: briefing link pasted in WhatsApp, iMessage, and Slack displays full card preview.
