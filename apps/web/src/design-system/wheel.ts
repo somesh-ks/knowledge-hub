@@ -19,7 +19,7 @@ export const WHEEL: Guidance = {
     "A column of values on a drum that snaps to a row: a person spins to a value, and the middle row, at full strength while the rest fade, is the value.",
   useWhen: [
     "A person sets a value from a short ordered run that they are likelier to spin to than to read: the hour a podcast is made, how many stories it tells.",
-    "It opens in a bottom sheet from a Select (data-wheel) on a phone.",
+    "It opens in a bottom sheet from a Select (data-wheel) on a phone. An option with data-wheel-text shows that on the wheel instead of its own text, so a column of numbers stays numbers.",
   ],
   dontUseWhen: [
     {

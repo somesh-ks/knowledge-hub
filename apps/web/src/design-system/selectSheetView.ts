@@ -64,7 +64,13 @@ function fill(list: HTMLElement, select: HTMLSelectElement, id: string): void {
     const rows = Array.from(select.options)
       .map((option, index) => ({ option, index }))
       .filter(({ option }) => !option.hidden)
-      .map(({ option, index }) => ({ index, text: option.text, disabled: isDisabled(option) }));
+      // A row may read shorter on the wheel than in the list (data-wheel-text): the list says
+      // "Auto (29)", the wheel turns a column of numbers and says "29".
+      .map(({ option, index }) => ({
+        index,
+        text: option.dataset.wheelText ?? option.text,
+        disabled: isDisabled(option),
+      }));
     // The wheel changes nothing until Save: closing any other way leaves the select as it was.
     const save =
       `<div class="${dialogActionsClass()}">` +
