@@ -147,6 +147,7 @@ What an episode or briefing is: kinds and structure, length, regenerate, Catch u
 - Cost: about 30% more writer and grounding calls on a deep pool; none on a thin one, which has no spares to take.
 - Rejected: a second write round after validation (the stages run as separate workflow steps, and validation has no selection logic); selecting the length alone and accepting the loss.
 - Revisit if: `validate-report.json` shows spares unaired on most runs (lower the share) or drops beyond the spares (raise it, or fix the cause of the drops).
+- Revisited 2026-11-06: dailies chose 28 and aired 12 or 13, so the share is 0.6, not 0.85 (first pass fills four runs in five; the reserve refills the rest), and 2.8 candidates a story keep the judge's pool. Revisit if a briefing airs under its length on more than one run in five.
 
 ## D168: the primary action is Catch up, Latest is a bolt, and a toast swipes away
 

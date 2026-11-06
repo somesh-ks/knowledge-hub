@@ -81,6 +81,23 @@ Asked for by the owner and not yet planned. Each needs a design or a decision be
 - **History rewrite (D298)**: remove the owner's old data from git history.
   - Closed when: it is done with no PR open, and a clone holds none of it.
 
+## Audit Leftovers (P2 and P3, 2026-10-31 audit)
+
+The 31 Oct hardening audit's lower-priority items still open on main (checked 2026-11-05). Ids match the audit file `/mnt/project-files/backlog/backlog.md`, which keeps the evidence and the fix for each. Shipped since and dropped here: REL-03, REL-06, COST-03, CI-04, CFG-04 (#550), CFG-06, PWA-04 (#707). Each closes when its fix is on main.
+
+- **Security**: SEC-02 `/api/site-icon` and source preview have no shared rate limit; SEC-04 admin login has no attempt limit, and logout cannot end a session (moot after Google sign-in); SEC-05 crash redaction misses `GEMINI_API_KEY`, `FIRECRAWL_API_KEY`, `TYPESAFE_API_KEY` and `ADMIN_*`; SEC-06 the owner checks the site token's scope (Variables write) and the runbook names it; SEC-08 small items (automerge without `--match-head-commit`, admin headers, capped body reads, CSP `default-src`).
+- **Reliability**: REL-04 `branches.yml` deletes a closed branch with newer commits; REL-05 `smokeLive.mjs` can delete an episode it did not create (fix before its first run); REL-07 an unreadable content manifest reads as empty; REL-08 the shared `singularity` group lets a save replace a queued Regenerate or heal; REL-09 small timeouts and races (status polls, narration POST, the downloads manifest, the Exa deadline); REL-10 run the Experiments reload harness on a Settings switch and slider.
+- **Settings edits**: CFG-03 a source host over 35 characters can never be added; CFG-05 a second tab reverts device preferences (no `storage` listener); CFG-07 a retry of an edit that landed is refused as a duplicate; CFG-08 a whole-topic edit from an older page overwrites a newer one; CFG-09 `topic.upsert` drops fields and still answers 202; CFG-10 the repo-to-store push checks JSON only; CFG-11 the runbook still says the config store is off; CFG-12 one refused vote holds every later vote; CFG-14 small parity items (no Other to un-file a source, unread `config/writer.json`).
+- **Observability**: OBS-03 a failed `gh run list` in `health.yml` reads as no runs and can close the issue; OBS-04 error refs are only in `console.error`, and the write stage does not say why a finalist dropped.
+- **Cost**: COST-04 the reader reads the manifest and tombstones every 30 s per warm instance (check Vercel's op count first); COST-05 cache writes booked at 1x though billed at 1.25x, replace runs skip Record failure, episode-eval spend unrecorded; COST-06 small unmeasured savings (cron schedule read, judged but never aired general items, prompt caching).
+- **Performance**: PERF-01 the middleware buffers every request-rendered page; PERF-03 narration prefetches three segments on cellular.
+- **Data**: DATA-01 restore covers git and Blob, not Neon (write down its restore window and a manual dump); DATA-02 ingest text packs are never pruned.
+- **CI**: CI-03 the web `ignoreCommand` diffs only `HEAD^`, and an expired admin session reads as an outage; CI-06 the browser suites are over their own time budget (ask before any test edit); CI-07 small workflow items.
+- **Accessibility**: A11Y-01 the mute button says "Unmute, pressed"; A11Y-02 screen reader gaps (Create topic error, toasts without a live region, transcript words); A11Y-03 British spellings in UI copy ("Cancelled", "Centre", "colour").
+- **Docs**: DOC-03 the runbook and `.env.example` are stale; DOC-04 the controls guide names `scripts/heroMenu.ts` without its `apps/web/src/` folder; DOC-05 the browser suites default `PORT` to 4321; DOC-07 orphan prototype scripts and unused dependencies (confirm with knip).
+- **Design system**: DS-01 the design guide restyles reader components outside the override gate; DS-02 dead utilities and unreferenced tokens (owner confirms each).
+- **PWA**: PWA-03 a run that ends while the Android app is hidden only marks the tab title; PWA-07 a full disk reads "Check your connection", and storage eviction is never explained; PWA-08 the iPhone install hint lives only in Settings; PWA-09 the manifest has no monochrome icon, `screenshots` or `lang`; PWA-12 lock-screen playback on an iPhone is unchecked.
+
 ## Future Ideas & Explorations
 
 Architecture, new features, and design explorations consolidated from the Design Engineering Ledger and architectural discussions:

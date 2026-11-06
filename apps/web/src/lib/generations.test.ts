@@ -44,11 +44,15 @@ describe("a row of the podcast queue", () => {
         words,
         followed: { id: 7, stageAt: NOW - elapsedMs },
       });
-    expect(at(60_000)).toMatchObject({ eta: "3 min", status: "Writing the script" });
+    // 3 minutes of the script left, plus the usual cover, publishing, voices and wait after it.
+    expect(at(60_000)).toMatchObject({ eta: "5 min", status: "Writing the script" });
+    // The stage keeps the first line; the slow note is the second and never replaces it.
     expect(at(400_000)).toMatchObject({
       eta: "",
-      status: "Taking longer than usual · Writing the script",
+      status: "Writing the script",
+      slowNote: "Taking longer than usual",
     });
+    expect(at(60_000).slowNote).toBe("");
     expect(describeGeneration(row(), { now: NOW, words })).toMatchObject({
       eta: "",
       status: "Writing the script",
@@ -60,6 +64,24 @@ describe("a row of the podcast queue", () => {
       status: "Waiting to start",
       percent: 0,
     });
+  });
+
+  // Bug it prevents: the engine times its own work in a stage (36 ms to gather, 1 ms for the cover), not
+  // the workflow step around it, so every run was "taking longer" within a second of Gathering, and the
+  // ring raced through the stages that are only a few milliseconds of that work.
+  it("does not call a stage slow for being past what the engine timed, only past the usual step", () => {
+    const estimates = [36, 34_000, 1, 14, null, null];
+    const at = (stage: number, elapsedMs: number) =>
+      describeGeneration(row({ stage, stage_estimates_ms: estimates }), {
+        now: NOW,
+        words,
+        followed: { id: 7, stageAt: NOW - elapsedMs },
+      });
+    expect(at(0, 14_000).slowNote).toBe("");
+    expect(at(2, 9_000).slowNote).toBe("");
+    expect(at(1, 90_000).slowNote).toBe("Taking longer than usual");
+    // The voices have no usual length of their own, so they are never called slow.
+    expect(at(4, 400_000).slowNote).toBe("");
   });
 
   it("counts further along in a later stage, and never 100 while it is going", () => {

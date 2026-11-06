@@ -126,7 +126,7 @@ export default function GenerateSheet({ open, handoff, onOpenChange }: GenerateS
   );
   const shownTopics = Boolean(page) && (wanted.topics || keepTopics || picked.size > 0);
   const shownLength = wanted.length || lengthPick !== null;
-  const length = lengthPick ?? String(desiredLength(Number(asked), answer.values));
+  const length = lengthPick ?? String(desiredLength(Number(asked), answer.values, comment));
   const isOn = (chip: RegenChip): boolean =>
     picked.get(chip.value) ??
     desiredChip(chip.label, page ? isChipOn(chip, page.selected) : false, answer.values);

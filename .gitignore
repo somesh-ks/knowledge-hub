@@ -27,3 +27,5 @@ node_modules
 # pulls them first (scripts/pullContent.ts).
 /Digests/
 /Podcasts/
+# The stories each recent run gathered, for a rewrite to carry (D376).
+/Pools/
