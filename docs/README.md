@@ -24,6 +24,7 @@ Where each kind of fact lives. Each fact is kept in one place; the others link t
 | [engineering/hardening.md](engineering/hardening.md) | Silent faults by aspect, the `health` detector, self-healing, what is left | When a fault slips past, or before adding a monitor |
 | [engineering/postmortem-test-suite.md](engineering/postmortem-test-suite.md) | How the test suite grew past its use | Before changing a test |
 | [engineering/reliability-audit-2026-10-15.md](engineering/reliability-audit-2026-10-15.md) | What failed inside the server's edit gap; risks left open | Before changing config saves |
+| [engineering/review-page.md](engineering/review-page.md) | How a thread shows the owner a visual change: one review page per PR, its rules, review.json and the builder | Before sharing stills or clips with the owner |
 | [engineering/stylex-pilot-evaluation.md](engineering/stylex-pilot-evaluation.md) | StyleX pilot benchmark and trade-offs for React player islands | Before introducing CSS-in-JS or changing player styles |
 | [reference/sources-reference.md](reference/sources-reference.md) | Sources outside the pipeline, and rejected candidates | Before adding a source |
 | [reference/resources.md](reference/resources.md) | Curated design-engineering and AI resources | When asked for references |
