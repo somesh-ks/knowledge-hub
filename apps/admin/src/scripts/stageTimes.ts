@@ -53,6 +53,10 @@ function cardFor(group: StageGroup): HTMLElement | null {
 function drawGroups(groups: StageGroup[]): void {
   if (!holder) return;
   for (const made of holder.querySelectorAll("[data-stage-card]")) made.remove();
+  // A kind's own card keeps no stages from an older answer that the fresh one no longer has.
+  for (const list of holder.querySelectorAll("[data-kind-card] [data-st-list]")) {
+    list.replaceChildren();
+  }
   // After the runs card, before the jobs.
   const jobs =
     holder.querySelector("[data-kind-card]")?.closest(".card-group")?.nextElementSibling ?? null;

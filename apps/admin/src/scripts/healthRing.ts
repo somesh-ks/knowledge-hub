@@ -195,7 +195,7 @@ export function drawRing(
     arcs.append(
       svgEl("path", {
         class: "ov-arc",
-        d: `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${RING.r} ${RING.r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`,
+        d: `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${RING.r} ${RING.r} 0 ${to - from > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`,
         pathLength: 1,
         "data-tone": tones[i] ?? "none",
         style: `--i:${i}`,
