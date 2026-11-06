@@ -51,7 +51,7 @@ header.intro { display: grid; gap: var(--space-4); padding-top: var(--space-6); 
 h1 { margin: 0; font-size: var(--font-size-display); line-height: var(--font-leading-display); font-weight: var(--font-weight-medium); text-wrap: balance; }
 .meta { margin: 0; color: var(--color-on-surface-muted); font-size: var(--font-size-meta); }
 .badge-label.is-accent { background: var(--color-accent-container); color: var(--color-on-accent-container); }
-.badge-label.is-new { background: var(--color-accent); color: var(--color-on-accent, var(--color-white)); }
+.badge-label.is-new { background: var(--color-accent); color: var(--color-on-accent); }
 
 .panel { display: grid; gap: var(--space-2); }
 .panel h2 { margin: 0; font-size: var(--font-size-title); line-height: var(--font-leading-title); font-weight: var(--font-weight-medium); }
@@ -100,7 +100,7 @@ figure.still[hidden] { display: none; }
   position: absolute; top: var(--space-2); right: var(--space-2);
   display: grid; place-items: center; width: var(--size-touch); height: var(--size-touch);
   border-radius: var(--radius-round); background: var(--color-surface-raised); color: var(--color-on-surface);
-  box-shadow: 0 1px 3px oklch(0% 0 0 / 0.2);
+  box-shadow: var(--shadow-raised);
 }
 html[data-comment-mode] .zoom-btn { display: none; }
 html[data-comment-mode] .media { cursor: crosshair; }
@@ -116,7 +116,7 @@ figcaption .cap { color: var(--color-on-surface-reading); }
 .pin {
   position: absolute; transform: translate(-50%, -50%);
   display: grid; place-items: center; width: 28px; height: 28px; border-radius: var(--radius-round);
-  background: var(--color-accent); color: var(--color-white); font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold);
+  background: var(--color-accent); color: var(--color-on-accent); font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold);
   box-shadow: 0 0 0 2px var(--color-surface-raised); pointer-events: none;
 }
 .notes { display: grid; gap: var(--space-2); }
@@ -288,7 +288,9 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
     stage.replaceChildren();
     vEl = s.media.cloneNode(true); vEl.removeAttribute("loading"); vEl.removeAttribute("width"); vEl.removeAttribute("height");
     vEl.dataset.still = s.id; stage.append(vEl);
+    const el = vEl;
     const fit = () => {
+      if (el !== vEl) return; // a later still replaced this one before it loaded
       const w = s.width || vEl.naturalWidth || vEl.videoWidth || 1, hh = s.height || vEl.naturalHeight || vEl.videoHeight || 1;
       vEl.style.width = `${w}px`; vEl.style.height = `${hh}px`;
       const r = stage.getBoundingClientRect();
@@ -409,7 +411,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
       if (localPinMode !== s || e.target.closest("button")) return;
       const [x, y] = pct(s.media, e);
       notes.push({ still: s.id, x: +x, y: +y, text: "" }); localPinMode = null; s.mediaBox.style.cursor = "";
-      s.notesEl.querySelector("[data-hint]")?.remove(); save(); renderNotes(); s.notesEl.querySelector("textarea:last-of-type")?.focus();
+      s.notesEl.querySelector("[data-hint]")?.remove(); save(); renderNotes(); [...s.notesEl.querySelectorAll(".note textarea")].at(-1)?.focus();
     });
     renderNotes();
   }
@@ -419,7 +421,7 @@ details.history ul { margin: var(--space-2) 0 0; padding-inline-start: 1.25em; d
       for (const n of s.notesEl.querySelectorAll(".note")) n.remove();
       notes.forEach((n, i) => {
         if (n.still !== s.id) return;
-        const ta = h("textarea", { "aria-label": `Note ${i + 1}`, maxlength: "2000", id: `note-${i}` }); ta.value = n.text;
+        const ta = h("textarea", { "aria-label": `Note ${i + 1}`, maxlength: "2000" }); ta.value = n.text;
         ta.addEventListener("input", () => { n.text = ta.value; save(); });
         s.notesEl.append(h("div", { class: "note" }, h("span", { class: "pin" }, String(i + 1)), ta,
           h("button", { class: "icon-btn", type: "button", "aria-label": `Remove note ${i + 1}`, html: `@ICON_close@`, onclick: () => { notes.splice(i, 1); save(); renderNotes(); } })));

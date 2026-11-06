@@ -22,6 +22,25 @@ const STYLES = join(ROOT, "apps", "web", "src", "styles");
 const DS_FILES = ["buttons.css", "badge.css", "banner.css", "icon.css"];
 const ICONS = ["close", "chevronLeft", "chevronRight", "pencilSimple", "search", "openInNew"];
 const TAG_KEYS = ["device", "browser", "theme", "mood", "hue", "state"];
+// Ids the template's own elements use; a change or still must not take one.
+const PAGE_IDS = [
+  "title",
+  "meta",
+  "check-panel",
+  "filters",
+  "changes",
+  "history",
+  "viewer",
+  "stage",
+  "review-data",
+  "pr-link",
+  "notes-copy",
+  "ver-badge",
+  "v-close",
+  "v-title",
+  "v-prev",
+  "v-next",
+];
 
 function escapeHtml(text) {
   return text.replace(
@@ -71,23 +90,35 @@ export function normalise(review, dir) {
     if (review[key] == null) fail(`review.json needs "${key}"`);
   }
   const ids = new Set();
+  const domIds = new Set(PAGE_IDS);
+  const claim = (domId, what) => {
+    if (domIds.has(domId)) fail(`${what} clashes with another id on the page ("${domId}")`);
+    domIds.add(domId);
+  };
   for (const change of review.changes) {
     if (!change.id || !change.title || !Array.isArray(change.stills))
       fail("each change needs id, title and stills");
+    claim(change.id, `change "${change.id}"`);
+    claim(`${change.id}-h`, `change "${change.id}"`);
     for (const still of change.stills) {
       if (!/^[a-z0-9][a-z0-9.-]{0,60}$/.test(still.id ?? ""))
         fail(`still id "${still.id}" must be lowercase letters, digits, dots and dashes`);
       if (ids.has(still.id)) fail(`still id "${still.id}" is used twice`);
       ids.add(still.id);
+      claim(still.id.replaceAll(".", "-"), `still "${still.id}"`);
       const file = join(dir, still.file ?? "");
       if (!still.file || !existsSync(file) || !statSync(file).isFile())
         fail(`still "${still.id}": file "${still.file}" not found`);
       for (const key of Object.keys(still.tags ?? {}))
         if (!TAG_KEYS.includes(key)) fail(`still "${still.id}": unknown tag "${key}"`);
       still.new_in ??= review.version;
-      if (!still.width || !still.height) Object.assign(still, imageSize(readFileSync(file)) ?? {});
+      if ((!still.width || !still.height) && !/\.(mp4|webm)$/i.test(still.file))
+        Object.assign(still, imageSize(readFileSync(file)) ?? {});
     }
   }
+  for (const item of review.check ?? [])
+    for (const id of item.stills ?? [])
+      if (!ids.has(id)) fail(`check "${item.text}" names unknown still "${id}"`);
   return review;
 }
 
@@ -147,7 +178,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const outAt = args.indexOf("--out");
   const out = outAt >= 0 ? resolve(args[outAt + 1] ?? fail("--out needs a folder")) : null;
   const dir = resolve(
-    args.find((_, i) => i !== outAt && i !== outAt + 1) ??
+    args.find((_, i) => outAt < 0 || (i !== outAt && i !== outAt + 1)) ??
       fail("usage: node scripts/reviewPage/build.mjs <review-dir> [--out <publish-dir>]"),
   );
   const { review, files, bytes } = build(dir);

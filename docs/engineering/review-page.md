@@ -44,7 +44,7 @@ How a thread shows the owner a visual change. One page per PR, built from `scrip
 }
 ```
 
-Tags are `device`, `browser`, `theme`, `mood`, `hue` and `state` (Before or After). Still ids are lowercase letters, digits, dots and dashes; keep them stable across versions. `new_in` defaults to the current version. The builder checks every field and file.
+Tags are `device`, `browser`, `theme`, `mood`, `hue` and `state` (Before or After). Still ids are lowercase letters, digits, dots and dashes; keep them stable across versions. `new_in` defaults to the current version. The builder stops on a missing field or file, an unknown tag, a repeated id, and a check that names a still the page lacks.
 
 ## Why it is built this way
 
