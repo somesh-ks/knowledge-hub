@@ -458,8 +458,8 @@ globalThis.document?.addEventListener("astro:after-swap", dropUnclaimed);
 let lastSent = 0;
 /** True while a flush runs. A second call returns at once: the running one sends what is waiting. */
 let busy = false;
-/** The page whose run is busy, so keepHeld can tell its request on the way from its wait. */
-let running: SaveContext | null = null;
+/** The changes the request on its way carries: keepHeld leaves them to it. */
+let sending = new Set<Pending>();
 /** Another page's changes that came while a run was busy: sent once it is done. */
 const queued = new Set<SaveContext>();
 /** The outbox was asked to go while a run was busy: it goes once that run is done. */
@@ -679,18 +679,19 @@ export async function drainOutbox(quiet = false): Promise<void> {
 export function keepHeld(context: SaveContext, now = Date.now()): void {
   if (context.changes.size === 0) return;
   if (!busy && gapLeft(lastSent, now) === 0) return;
-  // shortcut: changes made while this page's request is out are left to its run (keepWaiting shows
-  // them pending); upgrade if that is seen to lose edits.
-  if (running === context && inFlight.length > 0) return;
-  // An edit not final yet (a new topic's emoji, D142) stays with its run, which waits for it.
+  // An edit on its way already goes with keepalive; one not final yet (a new topic's emoji, D142)
+  // stays with its run, which waits for it. A newer edit made meanwhile goes after them, from here.
   const going = new Map(
-    [...context.changes].filter(([, pending]) => !pending.failed && !pending.ready),
+    [...context.changes].filter(
+      ([, pending]) => !pending.failed && !pending.ready && !sending.has(pending),
+    ),
   );
   if (going.size === 0) return;
   // Edits already kept (made offline) are told "synced" when they go; these alone are a plain save.
   const quiet = readOutbox(now).length === 0;
   for (const batch of pack(buildQueue(going), going)) {
-    if (!appendOutbox(batch.ops, now)) return;
+    // Storage refused this one: it stays with its run, and the ones kept before it still go.
+    if (!appendOutbox(batch.ops, now)) break;
     settle(batch, context.changes);
     try {
       context.settled?.();
@@ -725,7 +726,6 @@ export async function flush(context: SaveContext): Promise<void> {
     }
   };
   busy = true;
-  running = context;
   let failure = "";
   let timeRefused = false;
   let waits = 0;
@@ -793,6 +793,7 @@ export async function flush(context: SaveContext): Promise<void> {
       if (readOutbox().length > 0 && keep(batch)) continue;
       if (!rowSays) show(SAVING, "saving");
       inFlight = batch.ops;
+      sending = new Set(batch.sent.map(([, pending]) => pending));
       remember([]);
       const answer = await post(batch.ops);
       if (answer.unknown) {
@@ -800,6 +801,7 @@ export async function flush(context: SaveContext): Promise<void> {
         break;
       }
       inFlight = [];
+      sending = new Set();
       if (answer.status === 429 && waits < MAX_WAITS) {
         waits += 1;
         await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
@@ -856,7 +858,7 @@ export async function flush(context: SaveContext): Promise<void> {
     }
   } finally {
     busy = false;
-    running = null;
+    sending = new Set();
     // A page left with edits marked pending: the page open now hears how they went and takes what
     // failed, before another page's queued changes go (with them, when that page took them).
     if (!cut) {

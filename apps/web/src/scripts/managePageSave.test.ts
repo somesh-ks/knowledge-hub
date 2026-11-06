@@ -558,6 +558,38 @@ describe("a left page's held run", () => {
     expect(posted.flat().filter((op) => "length_minutes" in op)).toHaveLength(1);
     expect(outboxOps()).toEqual([]);
   });
+
+  it("keeps an edit made while the request before it is on its way, and sends it after that one", async () => {
+    let answer: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => {
+        const { op } = JSON.parse(String(init.body)) as { op: ConfigOp | ConfigOp[] };
+        posted.push([op].flat());
+        if (posted.length > 1) return Promise.resolve(new Response("{}", { status: 202 }));
+        return new Promise<Response>((resolve) => {
+          answer = resolve;
+        });
+      }),
+    );
+    const changes = new Map([["time", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    const run = flush(left);
+    await vi.advanceTimersByTimeAsync(0);
+    changes.set("length", change({ op: "schedule.set", length_minutes: 3 }));
+    keepHeld(left);
+    keepWaiting(left);
+    // The tab is killed now: the request on its way goes with keepalive, the newer edit from storage.
+    expect(outboxOps()).toEqual([{ op: "schedule.set", length_minutes: 3 }]);
+    answer(new Response("{}", { status: 202 }));
+    await run;
+    await vi.advanceTimersByTimeAsync(GAP_MS + 500);
+    expect(posted).toEqual([
+      [{ op: "schedule.set", hour: 9 }],
+      [{ op: "schedule.set", length_minutes: 3 }],
+    ]);
+    expect(outboxOps()).toEqual([]);
+  });
 });
 
 describe("remember", () => {
