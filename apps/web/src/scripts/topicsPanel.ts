@@ -9,7 +9,7 @@
  * the Create panel. Loaded the first time it is opened.
  */
 import type { SourceFormat } from "@singularity/core";
-import { sheetGestures } from "../design-system/pullDismiss";
+import { sheetGestures } from "@singularity/design-system/pullDismiss";
 import type { HeldSource } from "../lib/sourceCatalogMatch";
 import {
   parseSuggestedAdd,

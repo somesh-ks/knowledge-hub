@@ -6,7 +6,7 @@
  * reason can be read; the shell's disabled guard swallows their clicks.
  */
 
-import { warmWhenIdle } from "../design-system/idle";
+import { warmWhenIdle } from "@singularity/design-system/idle";
 import { connectivity, isOnline } from "../lib/connectivity";
 import { readRun } from "./runStatus";
 

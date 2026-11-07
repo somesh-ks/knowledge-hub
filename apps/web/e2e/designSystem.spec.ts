@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { MENU_TILES_MAX, menuHasTiles } from "../src/design-system/menu";
+import { MENU_TILES_MAX, menuHasTiles } from "@singularity/design-system/menu";
 import { AUDIO_DIGEST, expect, hydrated, openRowMenu, ROUTES, SITE_PAGES, test } from "./fixtures";
 import { openPicker, pickerList } from "./picker";
 

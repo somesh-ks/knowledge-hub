@@ -10,7 +10,7 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
-import { whenIdle } from "../design-system/idle";
+import { whenIdle } from "@singularity/design-system/idle";
 import { isOnline } from "../lib/connectivity";
 import { ARRIVED_ATTRIBUTE } from "./navigation";
 

@@ -16,7 +16,7 @@ describe("house rules for authored files", () => {
     "scripts",
     "packages/sound/src",
     "apps/web/src/styles",
-    "tokens",
+    "packages/design-system",
     "docs/prototype/sound-lab.html",
     "docs/prototype/ui-prototype.html",
   ];
@@ -34,7 +34,7 @@ describe("house rules for authored files", () => {
   it("contains no em dashes or en dashes", () => {
     const offenders: string[] = [];
     for (const file of roots.flatMap(files)) {
-      if (!/\.(ts|css|json|md|html)$/.test(file)) continue;
+      if (!/\.(ts|astro|css|json|md|html)$/.test(file)) continue;
       // Generated pages inline fonts as base64, which cannot contain these characters.
       const text = readFileSync(file, "utf8");
       if (DASHES.test(text)) offenders.push(file.replace(ROOT, ""));

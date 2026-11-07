@@ -1,4 +1,4 @@
-import { type IconSize, iconClass } from "../../design-system/icon";
+import { type IconSize, iconClass } from "@singularity/design-system/icon";
 import { ICON_BOLD_PATHS, ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./iconPathsLazy";
 
 interface IconProps {

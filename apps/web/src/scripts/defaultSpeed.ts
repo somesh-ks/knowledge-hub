@@ -6,7 +6,7 @@
  * when an episode starts. React and the panel load the first time the sheet opens, so the page's first
  * load stays light (checkBundle); the value on the button is drawn at once.
  */
-import { MENU_SELECTORS } from "../design-system/menu";
+import { MENU_SELECTORS } from "@singularity/design-system/menu";
 import { toPlaybackRate } from "../player/core/playerTypes";
 import { getPreferences } from "../player/core/preferences";
 import { rateLabel } from "../player/rateLabels";

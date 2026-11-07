@@ -17,7 +17,7 @@ import { type BrandColors, readBrandColors } from "../apps/web/src/lib/brandColo
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "..", "apps", "web", "public");
-const TOKENS = join(HERE, "..", "apps", "web", "src", "styles", "tokens.css");
+const TOKENS = join(HERE, "..", "packages", "design-system", "styles", "tokens.css");
 
 /** The mark's own box, in the units of the brand SVG. */
 const MARK = { width: 24, height: 24 } as const;

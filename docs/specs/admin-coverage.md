@@ -1,6 +1,6 @@
 # Admin coverage
 
-`/admin/coverage` in the command center: how much of what the apps draw comes from the design system. Counted at build from `tokens/system.json` and the reader's and command center's own files (`apps/admin/src/lib/coverage.ts`, with the system's class reader; the design system's files are its definition and are left out), so the page has no script and no request.
+`/admin/coverage` in the command center: how much of what the apps draw comes from the design system. Counted at build from `packages/design-system/tokens/system.json` and the reader's and command center's own files (`apps/admin/src/lib/coverage.ts`, with the system's class reader; the design system's files are its definition and are left out), so the page has no script and no request.
 
 ## Requirements
 

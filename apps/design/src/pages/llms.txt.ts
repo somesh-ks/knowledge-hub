@@ -1,5 +1,5 @@
+import llms from "@singularity/design-system/tokens/llms.txt?raw";
 import type { APIRoute } from "astro";
-import llms from "../../../../tokens/llms.txt?raw";
 
 // The short index of the design system for an agent (D236), served as written at /design/llms.txt.
 export const GET: APIRoute = () =>

@@ -1,6 +1,6 @@
 # Motion
 
-How things move, as rules an agent can apply without asking. The values live in `tokens/tokens.json` (built to `apps/web/src/styles/tokens.css`); the design site's Motion page runs them live. Rests on D94, D95, D230 and the owner's taste in [the ledger](../design-engineering-ledger.md) (section 1).
+How things move, as rules an agent can apply without asking. The values live in `packages/design-system/tokens/tokens.json` (built to `packages/design-system/styles/tokens.css`); the design site's Motion page runs them live. Rests on D94, D95, D230 and the owner's taste in [the ledger](../design-engineering-ledger.md) (section 1).
 
 ## The one rule
 
@@ -32,7 +32,7 @@ For a generated CSS spring token, the duration is the total curve time until it 
 
 Material 3 Expressive splits springs in two, and so does this app. A **spatial** spring moves things (position, size, shape) and may pass its target: 9.5% for fast (damping 0.6), 1.5% for default and slow (damping 0.8). An **effects** spring changes opacity or colour and never passes its target (damping 1), because a colour that overshoots flickers. A test fails an effects token that peaks above 1.
 
-The model uses unit mass; each token records stiffness and damping in its `singularity.spring` extension. `scripts/springCurve.ts` draws the `linear()` curve from them; `buildTokens.test.ts` re-derives every curve from its recorded values. The reader's JS integrator (`player/core/spring.ts`) takes a duration and bounce for finger-driven motion; the mapping is duration = 2π/√stiffness and bounce = 1 − damping.
+The model uses unit mass; each token records stiffness and damping in its `singularity.spring` extension. `packages/design-system/scripts/springCurve.ts` draws the `linear()` curve from them; `buildTokens.test.ts` re-derives every curve from its recorded values. The reader's JS integrator (`player/core/spring.ts`) takes a duration and bounce for finger-driven motion; the mapping is duration = 2π/√stiffness and bounce = 1 − damping.
 
 ## Reduced motion
 
@@ -62,4 +62,4 @@ Shown on the design site's Motion page beside what the app does today. Each land
 
 ## Code
 
-`tokens/tokens.json`, `scripts/springCurve.ts`, `scripts/buildTokens.test.ts`, `apps/web/src/player/core/spring.ts`, `apps/web/src/styles/player.css`, and the design site's Motion page.
+`packages/design-system/tokens/tokens.json`, `packages/design-system/scripts/springCurve.ts`, `packages/design-system/scripts/buildTokens.test.ts`, `apps/web/src/player/core/spring.ts`, `apps/web/src/styles/player.css`, and the design site's Motion page.

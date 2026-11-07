@@ -10,8 +10,8 @@
         "button-filled"
       ],
       "files": [
-        "design-system/Button.astro",
-        "design-system/button.ts"
+        "packages/design-system/src/Button.astro",
+        "packages/design-system/src/button.ts"
       ],
       "when": [
         "It is the one action that commits a sheet, a dialog or an empty page: Save, Add category, Listen now",
@@ -49,8 +49,8 @@
         "Never a bold label."
       ],
       "styles": [
-        "buttons.css",
-        "foundations.css"
+        "packages/design-system/styles/buttons.css",
+        "packages/design-system/styles/foundations.css"
       ],
       "usage": "Button, filled and tonal variants (design-system/Button.astro): the one committing action of a sheet or an empty page, and its alternative. Both fill their row.",
       "tokens": [
@@ -75,8 +75,8 @@
         "button-tonal"
       ],
       "files": [
-        "design-system/Button.astro",
-        "design-system/button.ts"
+        "packages/design-system/src/Button.astro",
+        "packages/design-system/src/button.ts"
       ],
       "when": [
         "It is the alternative beside a Filled button",
@@ -105,8 +105,8 @@
         "No outline."
       ],
       "styles": [
-        "buttons.css",
-        "foundations.css"
+        "packages/design-system/styles/buttons.css",
+        "packages/design-system/styles/foundations.css"
       ],
       "usage": "Button, tonal variant: the mood's container tone under its own words, with no outline, as the tonal icon button and the tonal select are. Quieter than the filled button and still a button, which an outlined box on the page's own surface was not. The accent container means chosen or current alone (owner, 2026-11-04): a control at rest takes the mood's container, grey in Default and tinted in a coloured mood, so no mood needs a grey it does not have.",
       "tokens": [
@@ -129,8 +129,8 @@
         "button-text"
       ],
       "files": [
-        "design-system/Button.astro",
-        "design-system/button.ts"
+        "packages/design-system/src/Button.astro",
+        "packages/design-system/src/button.ts"
       ],
       "when": [
         "It dismisses, backs out or repeats: Cancel, Clear, Try again, Hide this",
@@ -159,9 +159,9 @@
         "In a dialog, Cancel and the filled button sit in a DialogActions row (EpisodeActions.astro); a form sheet keeps its one filled button in `.sheet-actions`."
       ],
       "styles": [
-        "buttons.css",
-        "foundations.css",
-        "primitives.css"
+        "packages/design-system/styles/buttons.css",
+        "packages/design-system/styles/foundations.css",
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "Button, text variant (design-system/Button.astro): an accent label with no container until it is hovered or pressed. Usage: Cancel, Clear, Try again; the quiet action beside or under a filled button.",
       "tokens": [
@@ -179,8 +179,8 @@
         "button-danger"
       ],
       "files": [
-        "design-system/Button.astro",
-        "design-system/button.ts"
+        "packages/design-system/src/Button.astro",
+        "packages/design-system/src/button.ts"
       ],
       "when": [
         "It is the confirm of a delete, in a dialog that asks first: Delete, Delete source"
@@ -203,7 +203,7 @@
       ],
       "markup": "<Button variant=\"text\" tone=\"danger\">Delete</Button>",
       "styles": [
-        "buttons.css"
+        "packages/design-system/styles/buttons.css"
       ],
       "usage": "Button, danger tone (text variant; was .confirm-delete in episode-actions.css): red only here, once the person has asked to delete. Usage: the confirm of a delete dialog, Delete and Delete source. After the disabled rule above, which it must outrank at the same specificity.",
       "tokens": [
@@ -221,8 +221,8 @@
         "button-small"
       ],
       "files": [
-        "design-system/Button.astro",
-        "design-system/button.ts"
+        "packages/design-system/src/Button.astro",
+        "packages/design-system/src/button.ts"
       ],
       "when": [
         "It sits in a dense row or a popover"
@@ -242,7 +242,7 @@
       ],
       "markup": "<Button variant=\"text\" size=\"small\">Listen now</Button>",
       "styles": [
-        "buttons.css"
+        "packages/design-system/styles/buttons.css"
       ],
       "usage": "Button, small size (size=\"small\" on any variant): a shorter pill with less padding and label-size words, for a dense row or a popover where the full pill crowds the text around it (owner, 2026-11-04: Listen now in the queue). The pill is button.height-small; its target stays the touch size, as the chip's does. After the variants, so it wins at their specificity.",
       "tokens": [
@@ -261,8 +261,8 @@
         "icon-glyph-lg"
       ],
       "files": [
-        "design-system/Icon.astro",
-        "design-system/icon.ts"
+        "packages/design-system/src/Icon.astro",
+        "packages/design-system/src/icon.ts"
       ],
       "when": [
         "A mark beside a label or alone in a button: a chevron, a plus, a check, Play"
@@ -292,7 +292,7 @@
         "A control that holds a glyph places it with its own rule; it never sets the glyph's size twice."
       ],
       "styles": [
-        "icon.css"
+        "packages/design-system/styles/icon.css"
       ],
       "usage": "Phosphor: every glyph is one filled path, so an icon is just its colour and its size.",
       "tokens": [
@@ -312,8 +312,8 @@
         "badge-label"
       ],
       "files": [
-        "design-system/Badge.astro",
-        "design-system/badge.ts"
+        "packages/design-system/src/Badge.astro",
+        "packages/design-system/src/badge.ts"
       ],
       "when": [
         "A short label names what the thing beside it is: Admin beside the wordmark",
@@ -345,7 +345,7 @@
         "It holds one word or one number; the page places it with a class, never styles it."
       ],
       "styles": [
-        "badge.css"
+        "packages/design-system/styles/badge.css"
       ],
       "usage": "The Badge (design-system/Badge.astro): a grey pill that holds one word or one number. One size, one fill. It is as wide as its words and no narrower than it is high, so a single digit stays round. Grey, so the blue stays with the controls (owner, 2026-10-30).",
       "tokens": [
@@ -362,8 +362,8 @@
         "switch-input"
       ],
       "files": [
-        "design-system/Switch.astro",
-        "design-system/switch.ts"
+        "packages/design-system/src/Switch.astro",
+        "packages/design-system/src/switch.ts"
       ],
       "when": [
         "A setting is on or off and applies as soon as it is flipped: Sounds, Autoplay, a podcast's Enabled",
@@ -396,7 +396,7 @@
       ],
       "markup": "<div class=\"settings-row\"><label class=\"settings-label\" for=\"autoplay\">Autoplay</label><Switch id=\"autoplay\" name=\"autoplay\" /></div>",
       "styles": [
-        "switch.css"
+        "packages/design-system/styles/switch.css"
       ],
       "usage": "One setting that is on or off, a checkbox with role=\"switch\" drawn as a track; its ::before is the thumb.",
       "tokens": [
@@ -426,8 +426,8 @@
         "slider-input"
       ],
       "files": [
-        "design-system/Slider.astro",
-        "design-system/slider.ts"
+        "packages/design-system/src/Slider.astro",
+        "packages/design-system/src/slider.ts"
       ],
       "when": [
         "The value is on a scale where nearby values are alike: Volume, Playback speed, a topic's weight"
@@ -454,7 +454,7 @@
         "WebKit paints the filled track from --range-fill, which starts at 0%: set it to (value - min) / (max - min) as a percentage and update it on input."
       ],
       "styles": [
-        "slider.css"
+        "packages/design-system/styles/slider.css"
       ],
       "usage": "A value between two ends, set by dragging a thumb or with the arrow keys. A native range. WebKit has no pseudo-element for the filled part of the track, so the track paints it as a gradient up to --range-fill, which the script keeps at (value - min) / (max - min) as a percentage. Firefox has ::-moz-range-progress and ignores the gradient. The two engines' pseudo-elements cannot share a rule: a selector one engine does not know drops the whole rule in the other.",
       "tokens": [
@@ -480,8 +480,8 @@
         "field-input"
       ],
       "files": [
-        "design-system/Field.astro",
-        "design-system/field.ts"
+        "packages/design-system/src/Field.astro",
+        "packages/design-system/src/field.ts"
       ],
       "when": [
         "A person types a short value or a few lines: a title, a feed address, a prompt",
@@ -520,8 +520,8 @@
         "A disabled field dims like a disabled switch; a disabled fieldset dims it the same way, on the same element."
       ],
       "styles": [
-        "field.css",
-        "manage.css"
+        "apps/web/src/styles/manage.css",
+        "packages/design-system/styles/field.css"
       ],
       "usage": "The text field, and the select and textarea that share its looks: a filled pill (D186; a textarea 24px), the one control with an outline, which shows on focus.",
       "tokens": [
@@ -549,10 +549,10 @@
         "select-tonal"
       ],
       "files": [
-        "design-system/Select.astro",
-        "design-system/select.ts",
-        "design-system/selectSheet.ts",
-        "design-system/wheel.ts"
+        "packages/design-system/src/Select.astro",
+        "packages/design-system/src/select.ts",
+        "packages/design-system/src/selectSheet.ts",
+        "packages/design-system/src/wheel.ts"
       ],
       "when": [
         "A person picks one value from a list of five or more, or of names that are too long for a row of chips",
@@ -585,7 +585,7 @@
         "data-wheel on a short ordered run (the hours of a day) opens its phone sheet as a Wheel (design-system/wheel.ts), not as rows."
       ],
       "styles": [
-        "select.css"
+        "packages/design-system/styles/select.css"
       ],
       "usage": "The box and its text are the Field's (field.css, select.field-input); the wrapper holds the chevron a select draws for itself, in the muted ink, never taking a press.",
       "tokens": [
@@ -628,8 +628,8 @@
         "menu-item-value"
       ],
       "files": [
-        "design-system/Menu.astro",
-        "design-system/menu.ts"
+        "packages/design-system/src/Menu.astro",
+        "packages/design-system/src/menu.ts"
       ],
       "when": [
         "A card, header or row has more actions than room: Download, Add to queue, Share, Delete",
@@ -660,11 +660,11 @@
         "A script finds one with MENU_SELECTORS (design-system/menu.ts); a string builder or an island takes menuListClass() and menuItemClass()."
       ],
       "styles": [
-        "library.css",
-        "menu.css",
-        "queue.css",
-        "story-controls.css",
-        "topics.css"
+        "apps/web/src/styles/library.css",
+        "apps/web/src/styles/queue.css",
+        "apps/web/src/styles/story-controls.css",
+        "apps/web/src/styles/topics.css",
+        "packages/design-system/styles/menu.css"
       ],
       "usage": "A popover lives in the top layer, so it is placed against the viewport, not the row. Where anchor positioning exists it hangs under the button, right edges level; elsewhere heroMenu.ts writes --menu-top and --menu-right from the button's box when it opens.",
       "tokens": [
@@ -712,8 +712,8 @@
         "banner-body"
       ],
       "files": [
-        "design-system/Banner.astro",
-        "design-system/banner.ts"
+        "packages/design-system/src/Banner.astro",
+        "packages/design-system/src/banner.ts"
       ],
       "when": [
         "A state a person must know about stays on screen: offline, a failed run, a playback error"
@@ -745,7 +745,7 @@
         "An island draws one with bannerClass() and bannerText."
       ],
       "styles": [
-        "banner.css"
+        "packages/design-system/styles/banner.css"
       ],
       "usage": "Banners, and the pages with nothing to list. A banner is flat: a tinted ground, an icon in the tone's colour, a title, a line of text and at most one text button. The tone sets the tint.",
       "tokens": [
@@ -775,10 +775,10 @@
         "dialog-actions-stacked"
       ],
       "files": [
-        "design-system/Dialog.astro",
-        "design-system/DialogActions.astro",
-        "design-system/DialogTitle.astro",
-        "design-system/dialog.ts"
+        "packages/design-system/src/Dialog.astro",
+        "packages/design-system/src/DialogActions.astro",
+        "packages/design-system/src/DialogTitle.astro",
+        "packages/design-system/src/dialog.ts"
       ],
       "when": [
         "A person confirms what cannot be undone: Delete, Discard, Switch profile"
@@ -806,8 +806,8 @@
         "It renders closed: the script opens it with dialog.showModal() and closes it with dialog.close() from the Cancel button's click."
       ],
       "styles": [
-        "buttons.css",
-        "dialog.css"
+        "packages/design-system/styles/buttons.css",
+        "packages/design-system/styles/dialog.css"
       ],
       "usage": "",
       "tokens": [
@@ -830,10 +830,10 @@
         "sheet-title"
       ],
       "files": [
-        "design-system/Sheet.astro",
-        "design-system/sheet.ts",
-        "design-system/SheetHeader.astro",
-        "design-system/sheetHead.ts"
+        "packages/design-system/src/Sheet.astro",
+        "packages/design-system/src/sheet.ts",
+        "packages/design-system/src/SheetHeader.astro",
+        "packages/design-system/src/sheetHead.ts"
       ],
       "when": [
         "Something to fill in or edit that needs room: New episode, a topic, a source",
@@ -870,7 +870,7 @@
         "`sheet-field*`, `sheet-form` and `sheet-actions` are form layout in sheets.css, not the shell."
       ],
       "styles": [
-        "sheet.css"
+        "packages/design-system/styles/sheet.css"
       ],
       "usage": "",
       "tokens": [
@@ -902,8 +902,8 @@
         "drawer-panel"
       ],
       "files": [
-        "sheets/SheetFrame.tsx",
-        "design-system/drawer.ts"
+        "apps/web/src/sheets/SheetFrame.tsx",
+        "packages/design-system/src/drawer.ts"
       ],
       "when": [
         "A React island opens a form over the page, as Regenerate does"
@@ -930,8 +930,8 @@
         "Motion uses --duration-sheet-in, --duration-sheet-out and --ease-drawer."
       ],
       "styles": [
-        "drawer.css",
-        "foundations.css"
+        "packages/design-system/styles/drawer.css",
+        "packages/design-system/styles/foundations.css"
       ],
       "usage": "The Drawer's surface: a scrim over the page that fades as the sheet is swiped away, a viewport, and the popup that rests on the screen's edge.",
       "tokens": [
@@ -957,8 +957,8 @@
         "ripple-wave"
       ],
       "files": [
-        "design-system/Ripple.astro",
-        "design-system/ripple.ts"
+        "packages/design-system/src/Ripple.astro",
+        "packages/design-system/src/ripple.ts"
       ],
       "when": [
         "A large touch target on a phone must show where it was pressed: a bottom bar tab"
@@ -984,7 +984,7 @@
         "installRipple() (design-system/ripple.ts) is called once by the app script; the control sets nothing else."
       ],
       "styles": [
-        "ripple.css"
+        "packages/design-system/styles/ripple.css"
       ],
       "usage": "",
       "tokens": [
@@ -1000,7 +1000,7 @@
         "btn-action-tonal"
       ],
       "files": [
-        "components/AppNav.astro"
+        "apps/web/src/components/AppNav.astro"
       ],
       "when": [
         "the Catch up action in the side column"
@@ -1017,7 +1017,7 @@
         "create action"
       ],
       "styles": [
-        "buttons.css"
+        "packages/design-system/styles/buttons.css"
       ],
       "usage": "Tonal action: the one creating action in the side column (Catch up, AppNav.astro). Usage: add it to the action's own element, which keeps its size and layout. It wears the primary fill, the filled button's and Play's (owner, 2026-11-04: \"all should have the same color synchronized\"); it was a third, saturated tone of its own (owner, 2026-10-27), which read as a second primary beside Play. The current row's accent container still means \"you are here\" alone. - A 16px rounded rectangle: the one recorded exception to the pill rule (D186), so its shape alone tells it from the pill-shaped current row beside it (--action-tonal-radius). - Flat: no elevation and no shadow (owner, 2026-10-27). - Hover and press take the primary fill's own steps (--cta-bg-hover, --cta-bg-pressed).",
       "tokens": [
@@ -1040,7 +1040,7 @@
         "icon-btn-end"
       ],
       "files": [
-        "design-system/Icon.astro"
+        "packages/design-system/src/Icon.astro"
       ],
       "when": [
         "close a sheet or dialog",
@@ -1071,10 +1071,10 @@
         "`.press` gives the press as a state layer; the glyph never scales."
       ],
       "styles": [
-        "buttons.css",
-        "foundations.css",
-        "queue.css",
-        "story-controls.css"
+        "apps/web/src/styles/queue.css",
+        "apps/web/src/styles/story-controls.css",
+        "packages/design-system/styles/buttons.css",
+        "packages/design-system/styles/foundations.css"
       ],
       "usage": "The icon button: a glyph in a round 44px target. Quiet until used; the accent is for actions that have a label.",
       "tokens": [
@@ -1115,7 +1115,7 @@
         "share"
       ],
       "styles": [
-        "buttons.css"
+        "packages/design-system/styles/buttons.css"
       ],
       "usage": "The secondary icon button (2026-10-29, owner: \"a circle as a secondary button\"): an .icon-btn on the fill of the select chip (--color-surface-container), so it sits beside Play and a dropdown as one row in both themes. Usage: add it with .icon-btn for the companion of a primary action (Share beside Play); a lone toolbar glyph stays a plain .icon-btn. Its ink is full strength, not muted, because the fill already marks it as a control.",
       "tokens": [
@@ -1134,7 +1134,7 @@
         "chip"
       ],
       "files": [
-        "components/PlayChip.astro"
+        "apps/web/src/components/PlayChip.astro"
       ],
       "when": [
         "play an episode or a story and show idle, current, played, error or preparing",
@@ -1162,8 +1162,8 @@
         "A label that changes keeps a hidden copy of the widest one so the chip keeps its width."
       ],
       "styles": [
-        "buttons.css",
-        "reader.css"
+        "apps/web/src/styles/reader.css",
+        "packages/design-system/styles/buttons.css"
       ],
       "usage": "The tonal pill that plays a briefing or one story: a play mark and a short label on the container fill, with no outline.",
       "tokens": [
@@ -1229,7 +1229,7 @@
         "Always wraps a real checkbox or radio input."
       ],
       "styles": [
-        "primitives.css"
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "The filter chip: a checkbox drawn as a pill that takes the accent container when checked, its check taking no room (D95), in a row that scrolls sideways (the Library's Show filters).",
       "tokens": [
@@ -1281,7 +1281,7 @@
       ],
       "markup": "<fieldset class=\"segmented-choice\" role=\"radiogroup\" aria-labelledby=\"len\"><label class=\"segmented-choice-item\"><input type=\"radio\" name=\"length\" value=\"3\" /><span>3 min</span></label></fieldset>",
       "styles": [
-        "primitives.css"
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "Selection duty (2026-10-20), as Material 3's segmented button: one pill outlined with a hairline, hairline dividers between the segments, the chosen one filled with the accent container and a check before its words, the others transparent. Radios in a fieldset, so the arrow keys, the group and its name come from the browser. Told apart from .segmented-nav at a glance: an outline, not a track, and a check, not a raised pill.",
       "tokens": [
@@ -1308,7 +1308,7 @@
         "segmented-nav-compact"
       ],
       "files": [
-        "scripts/segmentedNav.ts"
+        "apps/web/src/scripts/segmentedNav.ts"
       ],
       "when": [
         "switch between Stories and Transcript",
@@ -1336,7 +1336,7 @@
         "`mountSegmentedNav(list, onSelect)` runs it; `data-param` keeps the choice in the URL."
       ],
       "styles": [
-        "primitives.css"
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "Navigation, used like tabs (2026-10-20): a tonal track with no outline and no check, and one pill in the accent container that slides under the active label, by transform alone. The design is flat, so the pill is told apart by colour, not by a shadow (2026-10-21); the choice control is told apart by its outline and check. The active label takes the pill's text colour, the others stay muted. Buttons in a tablist: segmentedNav.ts moves aria-selected and the roving tabindex, and answers Left, Right, Home and End.",
       "tokens": [
@@ -1364,7 +1364,7 @@
         "tabs-in-card"
       ],
       "files": [
-        "components/SectionTabs.astro"
+        "apps/web/src/components/SectionTabs.astro"
       ],
       "when": [
         "jump to the sections of a briefing or an episode",
@@ -1384,8 +1384,8 @@
         "Drawn only for two sections or more."
       ],
       "styles": [
-        "player.css",
-        "primitives.css"
+        "apps/web/src/styles/player.css",
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "The bar sticks and carries the surface and the line under it; the strip inside it scrolls and fades its ends. A mask on the bar itself would fade its surface and line too, and what scrolls under a stuck strip would show through at its edges.",
       "tokens": [
@@ -1441,9 +1441,9 @@
         "Sits in a `.rows.card-group`."
       ],
       "styles": [
-        "foundations.css",
-        "primitives.css",
-        "settings.css"
+        "apps/web/src/styles/settings.css",
+        "packages/design-system/styles/foundations.css",
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "A row that is one link or button: the whole row responds. Its fill is a rounded tile clear of the hairlines and reaching a little past the words, as a menu's options are, so a hovered row reads as one thing to press rather than a band across the page.",
       "tokens": [
@@ -1484,10 +1484,10 @@
         "Dividers run edge to edge inside."
       ],
       "styles": [
-        "multiselect.css",
-        "primitives.css",
-        "select.css",
-        "settings.css"
+        "apps/web/src/styles/multiselect.css",
+        "apps/web/src/styles/settings.css",
+        "packages/design-system/styles/primitives.css",
+        "packages/design-system/styles/select.css"
       ],
       "usage": "A group of settings rows in one rounded container on the container tone, as Material 3 groups an Android settings screen: the group is told apart from the page by tone alone, never by a shadow or a line. Put the class on the .rows list itself; the rows keep their own padding. Its words sit the card's padding in from its edge, and a row's hover tile keeps clear of the corners. 2026-10-22, \"the padding around the list menus ... must be spacious\": the words 24px in, the tiles 16px in on every side. The card adds half the inset above and below and each tile takes the other half inside its row, so the first and last tiles sit one inset from the edge, two tiles sit one inset apart, and the rows keep their 64px rhythm. 2026-10-24, the owner: \"I want the padding to be less and the list items to be spacious to improve click area ... 4px padding is decent\": the inset is 4px, a link row's box is its tile (one inset from the card's edges, its words still the padding in), so the whole tile is the target and nothing outside it is. The card adds the inset above and below and two rows sit one inset apart; each row keeps 64px.",
       "tokens": [
@@ -1535,11 +1535,11 @@
         "setting"
       ],
       "styles": [
-        "multiselect.css",
-        "picker.css",
-        "podcast.css",
-        "primitives.css",
-        "settings.css"
+        "apps/web/src/styles/multiselect.css",
+        "apps/web/src/styles/podcast.css",
+        "apps/web/src/styles/settings.css",
+        "packages/design-system/styles/picker.css",
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "Label and description at the start, the control at the end. The row grammar adds the padding and the hairline; with that padding this minimum is the 48px floor, and most rows are taller.",
       "tokens": [
@@ -1565,9 +1565,9 @@
         "toast-dismiss"
       ],
       "files": [
-        "sheets/Toaster.tsx",
-        "sheets/toastStore.ts",
-        "scripts/toastEvent.ts"
+        "apps/web/src/sheets/Toaster.tsx",
+        "apps/web/src/sheets/toastStore.ts",
+        "apps/web/src/scripts/toastEvent.ts"
       ],
       "when": [
         "a brief message with an Undo after a delete",
@@ -1595,8 +1595,8 @@
         "From a script outside the sheets chunk, use `sendToast`."
       ],
       "styles": [
-        "buttons.css",
-        "sheets.css"
+        "apps/web/src/styles/sheets.css",
+        "packages/design-system/styles/buttons.css"
       ],
       "usage": "One quiet message at a time: a flat, inverse surface with a hairline radius, an optional leading icon (a check or an alert, so the outcome is not told by colour alone), the message at the label size, at most one text action in the accent and, only while it stays until used, a close button. A top-layer popover above whatever is docked at the bottom: the navigation bar, and the player once it is showing. The fallbacks cover a page without the shell and a player that has not published its height yet.",
       "tokens": [
@@ -1624,8 +1624,8 @@
         "empty-actions"
       ],
       "files": [
-        "components/EmptyState.astro",
-        "components/EmptyArt.astro"
+        "apps/web/src/components/EmptyState.astro",
+        "apps/web/src/components/EmptyArt.astro"
       ],
       "when": [
         "a page or section with nothing to list yet",
@@ -1652,7 +1652,7 @@
         "Never hand-write `.empty` markup."
       ],
       "styles": [
-        "empty.css"
+        "apps/web/src/styles/empty.css"
       ],
       "usage": "No briefings yet, an empty library, no results, offline, not found: a spot illustration, a title, one line on what happens next and one way on, centred in the content column. Material's rhythm: 24px from the art to the title, 8px to the line, 24px to the button.",
       "tokens": [
@@ -1668,8 +1668,8 @@
         "multiselect-trigger"
       ],
       "files": [
-        "components/MultiSelect.astro",
-        "scripts/multiSelect.ts"
+        "apps/web/src/components/MultiSelect.astro",
+        "apps/web/src/scripts/multiSelect.ts"
       ],
       "when": [
         "choose several from a long list",
@@ -1686,7 +1686,7 @@
         "picker"
       ],
       "styles": [
-        "multiselect.css"
+        "apps/web/src/styles/multiselect.css"
       ],
       "usage": "",
       "tokens": [
@@ -1725,9 +1725,9 @@
         "text filter"
       ],
       "styles": [
-        "buttons.css",
-        "library.css",
-        "manage.css"
+        "apps/web/src/styles/library.css",
+        "apps/web/src/styles/manage.css",
+        "packages/design-system/styles/buttons.css"
       ],
       "usage": "The search field: a filled pill with the glyph inside it, as a search bar is in every Google app. The glyph and the placeholder say what it is. Focus lifts it (the overlay fill and a hairline; the design is flat, so no shadow); the ring is the keyboard's only (data-input, app.ts), so a tap, a click or typing never draws it. Library, Sources and every topic's page share this one field (2026-10-21; styles.test.ts holds them to it).",
       "tokens": [
@@ -1767,8 +1767,8 @@
         "The player has its own copy, `.player-source-link` (player.css); do not add a third."
       ],
       "styles": [
-        "foundations.css",
-        "primitives.css"
+        "packages/design-system/styles/foundations.css",
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "The one link out of a story or an episode highlight: the publisher's name (or its host) and an opens-elsewhere glyph. A link, not a button: no container, no fill. On hover an underline draws in under the name from its start (a background on the span, so it animates where text-decoration does not); a press deepens the words to the pressed accent. The padding is taken back at the start, so the words sit where they would without it and the target reaches past them; at the end it stays, so the target never runs past the column.",
       "tokens": [
@@ -1801,7 +1801,7 @@
         "hint link"
       ],
       "styles": [
-        "primitives.css"
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "A link inside a line of small text (a settings hint): the words stay inline, the touch target is 44px tall through a hit layer centred on the line (D189 sweep, layout.spec.ts). Usage: class=\"text-link\".",
       "tokens": [
@@ -1832,7 +1832,7 @@
         "metrics"
       ],
       "styles": [
-        "primitives.css"
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "A figure on a dashboard: a tile per stat, its value large over its word in muted ink, two columns on a phone and four from 40rem. The owner, 2026-10-27: the Costs page's stat pills became boxes, no pill for a figure. In a card a tile sits the card's padding in, so its corner is the card's less that padding (--card-content-radius, concentric), and it takes the overlay tone, as the card's chips do. On the 8pt grid: 16px in, a 24px value line and a 24px label line, 80px a tile. The value is the title step at regular weight, under the page's total it explains (owner, 2026-10-27: the heading-size medium value \"competes with the main cost number\"). Put .stat-tiles on the list and .stat-tile on each item, with .stat-tile-value and .stat-tile-label inside. Used by the Costs page (analytics.astro, costsPage.ts) and the Health page's summary (settings/health.astro).",
       "tokens": []
@@ -1853,7 +1853,7 @@
         "group title"
       ],
       "styles": [
-        "primitives.css"
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "More room above a header than below it: the header belongs to what follows.",
       "tokens": []
@@ -1874,7 +1874,7 @@
         "facts line"
       ],
       "styles": [
-        "primitives.css"
+        "packages/design-system/styles/primitives.css"
       ],
       "usage": "One quiet line of facts, its parts separated by a centred dot.",
       "tokens": [
@@ -1890,8 +1890,8 @@
         "cover"
       ],
       "files": [
-        "components/Cover.astro",
-        "lib/covers.ts"
+        "apps/web/src/components/Cover.astro",
+        "apps/web/src/lib/covers.ts"
       ],
       "when": [
         "show an episode or briefing cover"
@@ -1902,7 +1902,7 @@
         "album art"
       ],
       "styles": [
-        "cover.css"
+        "apps/web/src/styles/cover.css"
       ],
       "usage": "Covers. The box carries the palette color, so there is no empty flash while the image decodes. Weekly digests have their framing rule drawn into the image; at thumb size (3rem and under) that hairline is too fine to see, so the small covers get an extra inset rule. Larger covers show the drawn one alone.",
       "tokens": [
@@ -1924,9 +1924,9 @@
         "play-fab"
       ],
       "files": [
-        "components/CreateFab.astro",
-        "components/AddFab.astro",
-        "components/PlayFab.astro"
+        "apps/web/src/components/CreateFab.astro",
+        "apps/web/src/components/AddFab.astro",
+        "apps/web/src/components/PlayFab.astro"
       ],
       "when": [
         "the page's one creating action on a phone",
@@ -1944,9 +1944,9 @@
         "create button"
       ],
       "styles": [
-        "create-sheet.css",
-        "foundations.css",
-        "topics.css"
+        "apps/web/src/styles/create-sheet.css",
+        "apps/web/src/styles/topics.css",
+        "packages/design-system/styles/foundations.css"
       ],
       "usage": "",
       "tokens": [

@@ -1,21 +1,28 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
+import { COMPONENTS } from "@singularity/design-system/registry";
 import { describe, expect, it } from "vitest";
-import { SYSTEM_PATHS } from "../../../../scripts/designSystemGate.mjs";
-import { COMPONENTS } from "../design-system/registry";
 
 /**
- * House rules for the shell's own CSS, checked on the files it owns. tokens.css and foundations.css
- * belong to the design system and have their own tests (scripts/buildTokens.test.ts). Biome holds
- * the rules it can lint (`noImportantStyles` is an error in biome.json).
+ * House rules for the CSS the reader ships: its own stylesheets and the design system's
+ * (packages/design-system/styles), which the app draws as one set and names by file name. tokens.css
+ * and foundations.css have their own tests (packages/design-system/scripts/buildTokens.test.ts).
+ * Biome holds the rules it can lint (`noImportantStyles` is an error in biome.json).
  */
 
 const STYLES = import.meta.dirname;
 const SRC = join(STYLES, "..");
-const OWN_FILES = readdirSync(STYLES).filter(
-  (file) => file.endsWith(".css") && !["tokens.css", "foundations.css"].includes(file),
-);
-const read = (file: string) => readFileSync(join(STYLES, file), "utf8");
+const ROOT = join(SRC, "..", "..", "..");
+/** The design system's package: its stylesheets and its components (D382 step 4). */
+const SYSTEM = join(ROOT, "packages", "design-system");
+const SYSTEM_STYLES = join(SYSTEM, "styles");
+const SYSTEM_SRC = join(SYSTEM, "src");
+const STYLE_DIRS = [STYLES, SYSTEM_STYLES];
+const OWN_FILES = STYLE_DIRS.flatMap((dir) => readdirSync(dir))
+  .filter((file) => file.endsWith(".css") && !["tokens.css", "foundations.css"].includes(file))
+  .sort();
+const read = (file: string) =>
+  readFileSync(join(existsSync(join(SYSTEM_STYLES, file)) ? SYSTEM_STYLES : STYLES, file), "utf8");
 
 /** Comments and the generated-font header carry prose and commands, not styles. */
 const withoutComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -119,13 +126,19 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   ["html[data-manage-toast-open]", "a bar's inset sum: the 4px inset doubled, landing on the grid"],
 ];
 
+/** The reader's source and the design system's components, which it draws. */
+const codeFiles = (extensions: string[]) =>
+  [SRC, SYSTEM_SRC].flatMap((dir) => filesUnder(dir, extensions));
+
 /** Hand-written source (markup and script) the design rules read: no tests, fixtures or test kits. */
 const sourceFiles = () =>
-  filesUnder(SRC, [".astro", ".tsx", ".ts"]).filter(
+  codeFiles([".astro", ".tsx", ".ts"]).filter(
     (file) => !/\.(?:test|spec)\.tsx?$|[\\/](?:fixtures|testing)[\\/]|testing\.ts$/.test(file),
   );
 
-const posix = (file: string) => relative(SRC, file).replaceAll("\\", "/");
+/** A file as the allowlists name it: under the reader's src, or from the repository root. */
+const posix = (file: string) =>
+  relative(file.startsWith(SYSTEM) ? ROOT : SRC, file).replaceAll("\\", "/");
 
 /** Source files that may hold a colour literal, each with why it is not a painted design colour. */
 const RAW_COLOR_ALLOWED: [file: string, reason: string][] = [
@@ -142,7 +155,7 @@ const LOCAL_EASES: [file: string, reason: string][] = [
 
 /** Files that may hold an inline <svg>: the Icon components, the mark, the art and named one-offs. */
 const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
-  ["design-system/Icon.astro", "the Icon component"],
+  ["packages/design-system/src/Icon.astro", "the Icon component"],
   ["player/ui/Icon.tsx", "the island Icon component"],
   ["player/ui/LazyIcon.tsx", "the lazy island Icon component"],
   ["components/BrandMark.astro", "the wordmark's own mark, not a glyph"],
@@ -684,7 +697,7 @@ const RULES: Rule[] = [
     // face is a label on a track (segments, chips, tabs) show a press on the thumb or the colour.
     name: "has no scale transform on the pressed state of a label control",
     offenders: () =>
-      filesUnder(STYLES, [".css"]).flatMap((file) =>
+      STYLE_DIRS.flatMap((dir) => filesUnder(dir, [".css"])).flatMap((file) =>
         [...readFileSync(file, "utf8").matchAll(/([^{}]+)\{([^{}]*)\}/g)]
           .filter(([, selector = "", body = ""]) => {
             if (!selector.includes(":active") || !/transform:\s*scale\(/.test(body)) return false;
@@ -717,7 +730,7 @@ const RULES: Rule[] = [
     // ship unnoticed. Markup may only hand values to the stylesheet through custom properties.
     name: "no inline styling bypasses the tokens",
     offenders: () =>
-      filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) => {
+      codeFiles([".astro", ".tsx"]).flatMap((file) => {
         const markup = readFileSync(file, "utf8");
         return [...markup.matchAll(/\bstyle=(["{])/g)].flatMap((match) => {
           const start = (match.index ?? 0) + match[0].length;
@@ -747,7 +760,7 @@ const RULES: Rule[] = [
   {
     name: "does not give a label control the press classes, which scale it",
     offenders: () =>
-      filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) => {
+      codeFiles([".astro", ".tsx"]).flatMap((file) => {
         const markup = readFileSync(file, "utf8");
         // A class attribute, or the string literals inside a class:list={[...]} array.
         const lists = [...markup.matchAll(/class:list=\{\[([^\]]*)\]\}/g)].flatMap((match) =>
@@ -772,7 +785,7 @@ const RULES: Rule[] = [
     // and what the owner sees.
     name: "a segmented radiogroup is the choice control, a segmented tablist the navigation one",
     offenders: () =>
-      filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) =>
+      codeFiles([".astro", ".tsx"]).flatMap((file) =>
         [...readFileSync(file, "utf8").matchAll(/<[a-z]+\s[^<>]*>/g)].flatMap(([tag]) => {
           const classes = /\bclass="([^"]*)"/.exec(tag)?.[1]?.split(/\s+/) ?? [];
           const role = /\brole="([^"]*)"/.exec(tag)?.[1];
@@ -793,14 +806,14 @@ const RULES: Rule[] = [
     // and one chip: a new page that needs search or filters wears the Library's.
     name: "a search input sits in the shared .search-field, a filter chip is the shared .filter-chip",
     offenders: () => [
-      ...filesUnder(SRC, [".astro", ".tsx"]).flatMap((file) => {
+      ...codeFiles([".astro", ".tsx"]).flatMap((file) => {
         const markup = readFileSync(file, "utf8");
         const search = /type="search"|type=\{?["']search["']/.test(markup);
         return search && !/class(?:Name)?="[^"]*\bsearch-field\b/.test(markup)
           ? [`${file}: a search input outside .search-field`]
           : [];
       }),
-      ...filesUnder(SRC, [".astro", ".tsx", ".ts"]).flatMap((file) =>
+      ...codeFiles([".astro", ".tsx", ".ts"]).flatMap((file) =>
         [
           ...readFileSync(file, "utf8").matchAll(
             /class(?:Name)?="[^"]*\b((?!filter-)[a-z]+-chip)\b/g,
@@ -904,7 +917,7 @@ const RULES: Rule[] = [
     // Icon component; the files allowed are the Icon components themselves and named artwork.
     name: "no raw <svg> or <path> in components: icons go through the Icon component",
     offenders: () =>
-      filesUnder(SRC, [".astro", ".tsx"])
+      codeFiles([".astro", ".tsx"])
         .filter((file) => !RAW_SVG_ALLOWED.some(([allowed]) => allowed === posix(file)))
         .filter((file) => /<svg\b|<path\b/.test(readFileSync(file, "utf8")))
         .map((file) => `${posix(file)}: a raw <svg>`),
@@ -1249,12 +1262,7 @@ describe("design-system components in page stylesheets", () => {
     // --font-size-meta kept 14px when the meta role moved to 1rem, and a --radius-* corner stays
     // Default's in every mood. Pages read --text-*-size and --shape-*; the system's own sheets bind
     // the primitives, and no sheet reads the meta size but through its role.
-    const STYLES_DIR = "apps/web/src/styles/";
-    const system = new Set(
-      SYSTEM_PATHS.filter((path) => path.startsWith(STYLES_DIR)).map((path) =>
-        path.slice(STYLES_DIR.length),
-      ),
-    );
+    const system = new Set(readdirSync(SYSTEM_STYLES));
     const found = ownCss().flatMap(([file, css]) =>
       [...css.matchAll(/var\(\s*(--(?:font-size|radius)-[\w-]+)/g)]
         .filter(([, name]) => !system.has(file) || name === "--font-size-meta")
@@ -1346,7 +1354,7 @@ describe("design-system components in page stylesheets", () => {
 describe("component stylesheets", () => {
   it("covers every stylesheet the layout or an island imports", () => {
     // The command center (D224) imports the Costs and Health sheets from here.
-    const sources = [SRC, join(SRC, "..", "..", "admin", "src")].flatMap((src) =>
+    const sources = [SRC, SYSTEM_SRC, join(SRC, "..", "..", "admin", "src")].flatMap((src) =>
       readdirSync(src, { recursive: true, encoding: "utf8" })
         .filter((file) => /\.(astro|tsx)$/.test(file))
         .map((file) => readFileSync(join(src, file), "utf8")),
@@ -1360,10 +1368,11 @@ describe("component stylesheets", () => {
   it("reads no custom property that nothing defines", () => {
     // `var(--space-5)` with no --space-5 is not an error to the browser: the whole declaration is
     // dropped, silently. A property with a fallback is one that script or a library may set.
-    const src = SRC;
-    const sources = readdirSync(src, { recursive: true, encoding: "utf8" })
-      .filter((file) => /\.(css|astro|tsx|ts)$/.test(file) && !/\.(test|spec)\.tsx?$/.test(file))
-      .map((file) => readFileSync(join(src, file), "utf8"));
+    const sources = [SRC, SYSTEM_STYLES, SYSTEM_SRC].flatMap((src) =>
+      readdirSync(src, { recursive: true, encoding: "utf8" })
+        .filter((file) => /\.(css|astro|tsx|ts)$/.test(file) && !/\.(test|spec)\.tsx?$/.test(file))
+        .map((file) => readFileSync(join(src, file), "utf8")),
+    );
     const defined = new Set(
       sources.flatMap((text) =>
         [
@@ -1551,14 +1560,16 @@ describe("source files", () => {
 
   it("has no em or en dashes anywhere, in code, copy or tests", () => {
     const dashes = new RegExp(`[${String.fromCharCode(0x2014)}${String.fromCharCode(0x2013)}]`);
-    for (const file of files(ROOT).filter((path) => TEXT.has(extname(path)))) {
+    for (const file of [...files(ROOT), ...files(SYSTEM)].filter((path) =>
+      TEXT.has(extname(path)),
+    )) {
       expect(dashes.test(readFileSync(file, "utf8")), `${file} contains a dash`).toBe(false);
     }
   });
 
   it("has no placeholder text", () => {
     const placeholder = /\b(lorem ipsum|TODO|FIXME|XXX|placeholder text|coming soon)\b/i;
-    for (const file of files(join(ROOT, "src")).filter(
+    for (const file of [...files(join(ROOT, "src")), ...files(SYSTEM_SRC)].filter(
       (path) => TEXT.has(extname(path)) && !path.endsWith(".test.ts"),
     )) {
       expect(placeholder.exec(readFileSync(file, "utf8"))?.[0], file).toBeUndefined();

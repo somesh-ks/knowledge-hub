@@ -1,5 +1,5 @@
+import { buttonClass } from "@singularity/design-system/button";
 import { type PointerEvent, useDeferredValue, useEffect, useSyncExternalStore } from "react";
-import { buttonClass } from "../design-system/button";
 import { longDateFromDigestId } from "./core/formatTime";
 import { recordingCaption } from "./core/playerCopy";
 import { classifyKeyTarget, shouldToggleOnKey } from "./core/playerKeys";

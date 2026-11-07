@@ -1,4 +1,4 @@
-import tokens from "../../../tokens/covers.json" with { type: "json" };
+import tokens from "@singularity/design-system/tokens/covers.json" with { type: "json" };
 import { hexToOklch, type Oklch, oklchToHex } from "./color.js";
 import type { CoverMode } from "./mode.js";
 

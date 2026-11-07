@@ -8,7 +8,7 @@
  * drawn.
  */
 
-import { buttonClass } from "../../../web/src/design-system/button";
+import { buttonClass } from "@singularity/design-system/button";
 import type {
   HealthBody,
   HealthRow,

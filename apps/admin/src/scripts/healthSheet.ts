@@ -6,9 +6,9 @@
  * readers, where to start (lib/healthHelp.ts), the week's commonest reports, then its prompt for an
  * AI agent in the design system's Code snippet, which has its own Copy (healthPrompts.ts).
  */
-import { codeSnippetHtml, wireCodeCopy } from "../../../web/src/design-system/code";
-import { sheetGestures } from "../../../web/src/design-system/pullDismiss";
-import { sheetBodyClass } from "../../../web/src/design-system/sheet";
+import { codeSnippetHtml, wireCodeCopy } from "@singularity/design-system/code";
+import { sheetGestures } from "@singularity/design-system/pullDismiss";
+import { sheetBodyClass } from "@singularity/design-system/sheet";
 import { helpFor } from "../lib/healthHelp";
 import { allPrompt, issuePrompt, type PromptInput, reading } from "./healthPrompts";
 import { element, glyph } from "./healthRing";

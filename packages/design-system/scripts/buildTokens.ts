@@ -1,5 +1,5 @@
 /**
- * Compiles tokens/tokens.json (W3C DTCG) into apps/web/src/styles/tokens.css.
+ * Compiles tokens/tokens.json (W3C DTCG) into styles/tokens.css (paths in this package).
  *
  * Why a custom compiler instead of Style Dictionary: the system needs four things no stock
  * transform gives for free. Aliases stay as var() references so the three tiers remain visible in
@@ -76,9 +76,9 @@ const GENERIC_FAMILIES = new Set([
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const TOKENS_JSON_PATH = resolve(ROOT, "tokens/tokens.json");
-export const TOKENS_CSS_PATH = resolve(ROOT, "apps/web/src/styles/tokens.css");
+export const TOKENS_CSS_PATH = resolve(ROOT, "styles/tokens.css");
 export const COVERS_JSON_PATH = resolve(ROOT, "tokens/covers.json");
-export const HAPTICS_TS_PATH = resolve(ROOT, "apps/web/src/design-system/hapticTokens.ts");
+export const HAPTICS_TS_PATH = resolve(ROOT, "src/hapticTokens.ts");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

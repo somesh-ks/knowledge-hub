@@ -5,7 +5,7 @@
  * Both go through `removeDownload`, so the shared scripts and styles the pages kept go with the last.
  */
 
-import { whenIdle } from "../design-system/idle";
+import { whenIdle } from "@singularity/design-system/idle";
 import { downloadsSummary, SEARCH_FROM } from "../lib/downloads";
 import { normalize, textHasWords } from "../lib/library";
 import { installDownloadsSwipe, restoreRow } from "./downloadsSwipe";

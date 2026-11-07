@@ -1,13 +1,13 @@
 ---
-import Button from "../design-system/Button.astro";
-import Icon from "../design-system/Icon.astro";
-import { menuListClass } from "../design-system/menu";
+import Button from "@singularity/design-system/Button.astro";
+import Icon from "@singularity/design-system/Icon.astro";
+import { menuListClass } from "@singularity/design-system/menu";
 import { QUEUE_ACTION_ICONS, QUEUE_STATUS_ICONS } from "../lib/queueIcons";
 import { UPDATING_LABEL } from "../lib/runStages";
 import QueueRing from "./QueueRing.astro";
 // The failed run's Details dialog is built by a script (queueDetails.ts) from the design system's Code snippet,
 // so its stylesheet comes with the queue: Code.astro, which imports it, is not on the page.
-import "../styles/code.css";
+import "@singularity/design-system/styles/code.css";
 
 // Every line the queue shows. scripts/runStatus.ts and scripts/queue.ts read them from the element's
 // data attributes, so the scripts carry no copy. A bare data-<state> is a state of the run the page

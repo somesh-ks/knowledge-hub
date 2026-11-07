@@ -7,8 +7,9 @@
  * changes or keyboard navigation), every sound has a visual twin, and narration is sacred (the
  * engine skips or ducks per recipe; this layer only chooses names).
  */
+
+import type { HapticIntent } from "@singularity/design-system/hapticTokens";
 import type { PlayOptions, SoundName } from "@singularity/sound";
-import type { HapticIntent } from "../../design-system/hapticTokens";
 import type { PlayerEvent } from "../core/playerTypes";
 
 export interface Cue {

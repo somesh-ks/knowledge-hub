@@ -6,8 +6,8 @@
  * portal"). The banner is drawn the way the design system's banner part says an island draws one
  * (banner.ts); its icon comes from the page's template (Shell.astro).
  */
-import { bannerClass, bannerText } from "../../../web/src/design-system/banner";
-import { buttonClass } from "../../../web/src/design-system/button";
+import { bannerClass, bannerText } from "@singularity/design-system/banner";
+import { buttonClass } from "@singularity/design-system/button";
 
 export interface Problem {
   /** The banner's title: what did not happen, in the page's words. */

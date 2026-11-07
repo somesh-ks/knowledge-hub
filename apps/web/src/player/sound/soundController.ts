@@ -3,14 +3,15 @@
  * fetched when the browser is idle or at the first gesture, whichever comes first. Until then every
  * cue is a quiet no-op, which is the right behavior: no sound is ever required.
  */
-import type { SoundEngine } from "@singularity/sound";
-import { takeQuietClose } from "../../design-system/gestureQuiet";
+
+import { takeQuietClose } from "@singularity/design-system/gestureQuiet";
 import {
   createHaptics,
   detectHapticSupport,
   type Haptics,
   iosTick,
-} from "../../design-system/haptics";
+} from "@singularity/design-system/haptics";
+import type { SoundEngine } from "@singularity/sound";
 import type { PlayerStore } from "../core/playerTypes";
 import type { PreferencesStore } from "../core/preferences";
 import { type Cue, cueForPlayerEvent, playCue } from "./soundMap";

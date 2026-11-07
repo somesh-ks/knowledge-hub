@@ -31,9 +31,9 @@ describe("design-system gate", () => {
 
   it("asks an unlabelled pull request that edits a component or a shared stylesheet to move it", () => {
     for (const file of [
-      "apps/web/src/design-system/Button.astro",
-      "apps/web/src/styles/buttons.css",
-      "tokens/tokens.json",
+      "packages/design-system/src/Button.astro",
+      "packages/design-system/styles/buttons.css",
+      "packages/design-system/tokens/tokens.json",
     ]) {
       const problems = checkDesignSystemPr({
         files: [file, "apps/web/src/pages/x.astro"],
@@ -46,8 +46,8 @@ describe("design-system gate", () => {
 
   it("lets a labelled pull request change the system, its call sites, the guide and the docs", () => {
     const files = [
-      "apps/web/src/design-system/Button.astro",
-      "apps/web/src/styles/buttons.css",
+      "packages/design-system/src/Button.astro",
+      "packages/design-system/styles/buttons.css",
       "apps/web/src/components/Banner.astro",
       "apps/design/src/pages/buttons.astro",
       "docs/decisions/design-system.md",
@@ -67,7 +67,7 @@ describe("design-system gate", () => {
 
   // Mid-move, a branch that edits the old paths lands a change the move then loses or must redo.
   it("freezes the system while the move to its package is open, and lets the move itself through", () => {
-    const files = ["apps/web/src/design-system/Button.astro", "pnpm-lock.yaml"];
+    const files = ["packages/design-system/src/Button.astro", "pnpm-lock.yaml"];
     const frozen = checkDesignSystemPr({
       files: files.slice(0, 1),
       labels: ["design-system"],
@@ -102,7 +102,7 @@ describe("design-system gate", () => {
 
   it("names each file a labelled pull request carries that is not design-system work", () => {
     const files = [
-      "apps/web/src/design-system/Button.astro",
+      "packages/design-system/src/Button.astro",
       "packages/engine/src/run.ts",
       "config/models.json",
     ];
@@ -182,25 +182,34 @@ describe("design-system gate", () => {
     }
   });
 
-  // A system file that imports app code (lib/, scripts/, components/) cannot be lifted into its own
-  // package; ten such back-imports had grown unseen before this check.
-  it("fails a design-system file that imports app code, and lets it import its stylesheets and tokens", () => {
-    const at = "apps/web/src/design-system/Sheet.astro";
+  // A system file that imports app code (lib/, scripts/, components/) cannot leave for its own
+  // repository; ten such back-imports had grown unseen before this check.
+  it("fails a design-system file that imports app code, and lets it import its own files", () => {
+    const at = "packages/design-system/src/Sheet.astro";
     const text = [
       'import Header from "./SheetHeader.astro";',
       'import { MENU_BACK } from "./menu";',
       'import "../styles/sheet.css";',
-      'import raw from "../../../../tokens/system.json";',
-      'import { escapeHtml } from "../lib/sheetHead";',
-      'import { warm } from "../scripts/idle";',
-      'const view = () => import("../components/SheetHeader.astro");',
-      'import { x } from "../styles/icon.css.ts";',
+      'import art from "../flags/se.svg";',
+      'import { escapeHtml } from "../../../apps/web/src/lib/sheetHead";',
+      'import { warm } from "../../../apps/web/src/scripts/idle";',
+      'const view = () => import("../../../apps/web/src/components/SheetHeader.astro");',
+      'import type { HTMLAttributes } from "astro/types";',
+      'import { SUPPORTED_TIMEZONES } from "@singularity/core/time";',
+      'import { loadDigest } from "@singularity/engine";',
     ].join("\n");
     expect(boundaryProblems([{ file: at, text }])).toEqual([
-      `${at}: ../lib/sheetHead`,
-      `${at}: ../scripts/idle`,
-      `${at}: ../components/SheetHeader.astro`,
-      `${at}: ../styles/icon.css.ts`,
+      `${at}: ../../../apps/web/src/lib/sheetHead`,
+      `${at}: ../../../apps/web/src/scripts/idle`,
+      `${at}: ../../../apps/web/src/components/SheetHeader.astro`,
+      `${at}: @singularity/engine`,
+    ]);
+    // The generators go with the package too (step 6 filters it into its own repository).
+    const script = "packages/design-system/scripts/buildTokens.ts";
+    const imports =
+      'import { readFileSync } from "node:fs";\nimport { a } from "../../../scripts/colorMath.js";';
+    expect(boundaryProblems([{ file: script, text: imports }])).toEqual([
+      `${script}: ../../../scripts/colorMath.js`,
     ]);
   });
 
@@ -223,6 +232,7 @@ describe("design-system gate", () => {
     const root = join(import.meta.dirname, "..");
     const sources = systemSources(root);
     expect(sources.length).toBeGreaterThan(20);
+    expect(sources.some(({ file }) => file.includes("/scripts/system/"))).toBe(true);
     expect(boundaryProblems(sources)).toEqual([]);
   });
 });

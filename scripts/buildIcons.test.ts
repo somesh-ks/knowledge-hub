@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { parseBrandColors } from "../apps/web/src/lib/brandColors";
 import { buildIcons, faviconSvg, ICON_SPECS, iconSvg, renderIcon, staleIcons } from "./buildIcons";
 
-const TOKENS = join(import.meta.dirname, "..", "apps", "web", "src", "styles", "tokens.css");
+const TOKENS = join(import.meta.dirname, "..", "packages", "design-system", "styles", "tokens.css");
 const colors = parseBrandColors(readFileSync(TOKENS, "utf8"));
 const temporary: string[] = [];
 

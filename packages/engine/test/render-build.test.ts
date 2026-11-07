@@ -444,18 +444,18 @@ describe("fallback cover picker", () => {
   it("reads palette ids from tokens/covers.json, or falls back to dusk", async () => {
     const root = await tempRoot();
     expect(await loadCoverPalettes(root)).toEqual(["dusk"]);
-    await mkdir(join(root, "tokens"), { recursive: true });
+    await mkdir(join(root, "packages", "design-system", "tokens"), { recursive: true });
     await writeFile(
-      join(root, "tokens", "covers.json"),
+      join(root, "packages", "design-system", "tokens", "covers.json"),
       JSON.stringify({ $schema: "x", palettes: { ink: {}, moss: {} } }),
     );
     expect(await loadCoverPalettes(root)).toEqual(["ink", "moss"]);
     await writeFile(
-      join(root, "tokens", "covers.json"),
+      join(root, "packages", "design-system", "tokens", "covers.json"),
       JSON.stringify({ $description: "d", sand: {}, sea: {} }),
     );
     expect(await loadCoverPalettes(root)).toEqual(["sand", "sea"]);
-    await writeFile(join(root, "tokens", "covers.json"), "not json");
+    await writeFile(join(root, "packages", "design-system", "tokens", "covers.json"), "not json");
     expect(await loadCoverPalettes(root)).toEqual(["dusk"]);
   });
 });

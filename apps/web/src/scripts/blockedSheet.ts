@@ -5,7 +5,7 @@
  * handed back together when Block is pressed, and blockedPage.ts saves them.
  */
 
-import { sheetGestures } from "../design-system/pullDismiss";
+import { sheetGestures } from "@singularity/design-system/pullDismiss";
 import { blockedDomainOf, customBlock, matchesQuery } from "../lib/blockedOutlets";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { guardSheet } from "./sheetGuard";

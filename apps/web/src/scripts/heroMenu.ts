@@ -3,9 +3,9 @@
  * own popover. The listeners sit on the document, so they outlive a client-side navigation that
  * swaps the menu for another page's. Loaded by the briefing and episode pages.
  */
-import { MENU_SELECTORS } from "../design-system/menu";
-import { pullToDismiss } from "../design-system/pullDismiss";
-import { installSheetTapGuard } from "../design-system/sheetTap";
+import { MENU_SELECTORS } from "@singularity/design-system/menu";
+import { pullToDismiss } from "@singularity/design-system/pullDismiss";
+import { installSheetTapGuard } from "@singularity/design-system/sheetTap";
 
 // The emoji picker (data-picker) is the same popover but its own: its keys, focus and Close are emojiPicker.ts.
 const LIST = `${MENU_SELECTORS.list}:not([data-picker])`;

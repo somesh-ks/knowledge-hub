@@ -1,16 +1,16 @@
 ---
+import Select from "@singularity/design-system/Select.astro";
+import Slider from "@singularity/design-system/Slider.astro";
+import Switch from "@singularity/design-system/Switch.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
-import Select from "../../design-system/Select.astro";
-import Slider from "../../design-system/Slider.astro";
-import Switch from "../../design-system/Switch.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { loadScheduleView } from "../../lib/schedule";
-import "../../styles/field.css";
+import "@singularity/design-system/styles/field.css";
 import "../../styles/settings.css";
 import "../../styles/manage.css";
 import "../../styles/podcast.css";
-import "../../styles/picker.css";
+import "@singularity/design-system/styles/picker.css";
 
 /**
  * Sound and voice (D326): the app's own small sounds, and the voices every podcast is read in. The
