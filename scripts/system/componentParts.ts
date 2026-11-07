@@ -326,8 +326,8 @@ export const componentParts = (): PartSource[] => [
     files: [
       "design-system/Sheet.astro",
       "design-system/sheet.ts",
-      "components/SheetHeader.astro",
-      "lib/sheetHead.ts",
+      "design-system/SheetHeader.astro",
+      "design-system/sheetHead.ts",
     ],
     keywords: [
       "bottom sheet",
@@ -343,7 +343,7 @@ export const componentParts = (): PartSource[] => [
       '<Sheet title="Regenerate" titleId="regen-title" close="data-dialog-close"><form>...</form></Sheet>',
     rules: [
       'A script finds one with SHEET_SELECTOR (design-system/sheet.ts); kind="create" is the New episode sheet, every other is a "panel".',
-      "A header a script builds is sheetHeadHtml() (lib/sheetHead.ts); never write the row or its Close by hand.",
+      "A header a script builds is sheetHeadHtml() (design-system/sheetHead.ts); never write the row or its Close by hand.",
       "`sheet-field*`, `sheet-form` and `sheet-actions` are form layout in sheets.css, not the shell.",
     ],
   }),

@@ -1,7 +1,7 @@
 /**
  * Small monochrome marks for the paid services the Costs page names (apps/admin/src/pages/costs.astro, drawn by
  * scripts/costsPage.ts). Filled paths in currentColor, so they take the text's ink in either theme.
- * Not the glyph set (lib/icons.ts is generated from Phosphor and holds only icons). The marks are the
+ * Not the glyph set (design-system/icons.ts is generated from Phosphor and holds only icons). The marks are the
  * companies' own: Anthropic, Vercel, GitHub and Gemini from Simple Icons (CC0, simpleicons.org,
  * 2026-10-25), Speechify's wave from its logo (website.cdn.speechify.com/speechify-logo-v2.svg).
  * Firecrawl has no vector mark (its identity is the flame emoji), so its flame is drawn here; Exa and

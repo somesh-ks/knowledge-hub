@@ -7,8 +7,8 @@
  * AI agent in the design system's Code snippet, which has its own Copy (healthPrompts.ts).
  */
 import { codeSnippetHtml, wireCodeCopy } from "../../../web/src/design-system/code";
+import { sheetGestures } from "../../../web/src/design-system/pullDismiss";
 import { sheetBodyClass } from "../../../web/src/design-system/sheet";
-import { sheetGestures } from "../../../web/src/scripts/pullDismiss";
 import { helpFor } from "../lib/healthHelp";
 import { allPrompt, issuePrompt, type PromptInput, reading } from "./healthPrompts";
 import { element, glyph } from "./healthRing";

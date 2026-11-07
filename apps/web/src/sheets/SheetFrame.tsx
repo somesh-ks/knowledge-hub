@@ -12,8 +12,8 @@ import {
   drawerScrimClass,
   drawerViewportClass,
 } from "../design-system/drawer";
+import { quietNextClose } from "../design-system/gestureQuiet";
 import { sheetHeadClass, sheetTitleClass } from "../design-system/sheet";
-import { quietNextClose } from "../player/sound/gestureQuiet";
 import Icon from "../player/ui/LazyIcon";
 import "../styles/drawer.css";
 

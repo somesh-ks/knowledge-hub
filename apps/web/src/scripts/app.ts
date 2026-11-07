@@ -1,3 +1,4 @@
+import { setOnlineProbe } from "../design-system/idle";
 import { installRipple } from "../design-system/ripple";
 import { counted, installAnalytics } from "../lib/analytics";
 import { connectivity, isOnline } from "../lib/connectivity";
@@ -29,6 +30,8 @@ import { installUiSound } from "./uiSound";
  * the service worker, the analytics script (production only, D154) and the wake of the islands. Loaded once from the layout.
  * A bundled module script runs once per session, so per-page work listens for astro:page-load.
  */
+// Before any installer warms a module: idle fetches believe the confirmed state, not navigator.onLine (D330).
+setOnlineProbe(isOnline);
 installDisabledGuard();
 // From the first moment: the update check starts after load and must know what was typed before it.
 trackTyping();

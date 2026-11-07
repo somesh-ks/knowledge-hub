@@ -4,8 +4,8 @@
  * with the editor, never with the page.
  */
 import { showText } from "../design-system/flag";
+import { ICON_PATHS, ICON_VIEW_BOX } from "../design-system/icons";
 import { rowExitClass } from "../design-system/rowExit";
-import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
 import { readableUrl } from "../lib/readableUrl";
 import { searchText } from "../lib/sourceFilter";
 import { sourceInitial } from "../lib/sourceInitial";

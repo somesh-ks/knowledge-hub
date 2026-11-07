@@ -4,8 +4,11 @@ import { describe, expect, it } from "vitest";
 import {
   ALLOWLISTS,
   allowlistAdditions,
+  boundaryProblems,
   checkDesignSystemPr,
   listEntries,
+  SYSTEM_NAMES,
+  systemSources,
 } from "./designSystemGate.mjs";
 
 // Without the gate a feature branch edits a shared component on the side, and the owner finds out
@@ -48,6 +51,9 @@ describe("design-system gate", () => {
       "apps/design/src/pages/buttons.astro",
       "docs/decisions/design-system.md",
       "AGENTS.md",
+      // A file moved into the system moves its paths in the build filters and the blast-radius map.
+      "apps/admin/ignore-build.sh",
+      "scripts/blastRadius.mjs",
     ];
     expect(
       checkDesignSystemPr({
@@ -74,6 +80,9 @@ describe("design-system gate", () => {
     expect(problems).toHaveLength(2);
     expect(problems.join("\n")).toContain("apps/web/src/server/health.ts");
     expect(problems.join("\n")).toContain("docs/specs/engine.md");
+    // A file that imports from the system draws it, so a module moved into design-system/ (D382)
+    // makes each importer a call site.
+    expect(SYSTEM_NAMES.test('import { warmWhenIdle } from "../design-system/idle";')).toBe(true);
   });
 
   it("names each file a labelled pull request carries that is not design-system work", () => {
@@ -156,5 +165,34 @@ describe("design-system gate", () => {
         expect(listEntries(text, list)?.length, `${file} has no ${list}`).toBeGreaterThan(0);
       }
     }
+  });
+
+  // A system file that imports app code (lib/, scripts/, components/) cannot be lifted into its own
+  // package; ten such back-imports had grown unseen before this check.
+  it("fails a design-system file that imports app code, and lets it import its stylesheets and tokens", () => {
+    const at = "apps/web/src/design-system/Sheet.astro";
+    const text = [
+      'import Header from "./SheetHeader.astro";',
+      'import { MENU_BACK } from "./menu";',
+      'import "../styles/sheet.css";',
+      'import raw from "../../../../tokens/system.json";',
+      'import { escapeHtml } from "../lib/sheetHead";',
+      'import { warm } from "../scripts/idle";',
+      'const view = () => import("../components/SheetHeader.astro");',
+      'import { x } from "../styles/icon.css.ts";',
+    ].join("\n");
+    expect(boundaryProblems([{ file: at, text }])).toEqual([
+      `${at}: ../lib/sheetHead`,
+      `${at}: ../scripts/idle`,
+      `${at}: ../components/SheetHeader.astro`,
+      `${at}: ../styles/icon.css.ts`,
+    ]);
+  });
+
+  it("finds the system's files, so the boundary check cannot pass over an empty folder", () => {
+    const root = join(import.meta.dirname, "..");
+    const sources = systemSources(root);
+    expect(sources.length).toBeGreaterThan(20);
+    expect(boundaryProblems(sources)).toEqual([]);
   });
 });

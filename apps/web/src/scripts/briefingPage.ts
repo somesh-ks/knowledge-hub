@@ -4,9 +4,9 @@
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
 import { glowFavorite } from "../design-system/glow";
+import { warmWhenIdle } from "../design-system/idle";
 import { deviceStorage, isSaved, setSaved } from "../player/core/saved";
 import { installHeroMenu } from "./heroMenu";
-import { warmWhenIdle } from "./idle";
 import { prepareEarly, shareItem, shareLink } from "./shareLink";
 import { stickyTop } from "./stickyTop";
 import { sendToast } from "./toastEvent";

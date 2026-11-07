@@ -4,8 +4,9 @@
  * orders them newest first. A row's menu removes it from Saved; the page hears the change through
  * the `singularity:saved` event.
  */
+
+import { whenIdle } from "../design-system/idle";
 import { savedAt } from "../player/core/saved";
-import { whenIdle } from "./idle";
 
 function mount(root: HTMLElement): void {
   const one = <T extends HTMLElement = HTMLElement>(selector: string): T =>

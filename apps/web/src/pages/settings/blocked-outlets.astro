@@ -220,7 +220,7 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
 </BaseLayout>
 
 <script>
-  import { whenIdle } from "../../scripts/idle";
+  import { whenIdle } from "../../design-system/idle";
 
   // The editor is not in the page's first load: until it mounts, the list reads as it is and the
   // field and buttons are there but do nothing. It loads at idle, never on a first press.

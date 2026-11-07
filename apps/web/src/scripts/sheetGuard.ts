@@ -5,7 +5,7 @@ import {
   dialogClass,
   dialogTitleClass,
 } from "../design-system/dialog";
-import { dismissOnScrim } from "./pullDismiss";
+import { dismissOnScrim } from "../design-system/pullDismiss";
 
 /**
  * The unsaved-changes guard every edit sheet shares (2026-10-25). A sheet saves only with its own

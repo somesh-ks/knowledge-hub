@@ -4,7 +4,8 @@
 // added to a list that excuses code from a system check is a system change too.
 // Usage in CI: LABELS='["design-system"]' BASE=<sha> node scripts/designSystemGate.mjs
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { join, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const LABEL = "design-system";
@@ -68,6 +69,9 @@ const WORKSPACE_PLUMBING = [
  */
 const MAY_CHANGE = [
   ...SYSTEM_PATHS,
+  // A file moved into the system moves its path in the admin's build filter and the blast-radius map.
+  "apps/admin/ignore-build.sh",
+  "scripts/blastRadius.mjs",
   "docs/decisions/",
   "docs/history/",
   "docs/design-engineering-ledger.md",
@@ -80,7 +84,6 @@ const MAY_CHANGE = [
   "docs/specs/style-guide.md",
   "docs/design/command-center.md",
   "docs/specs/README.md",
-  "apps/web/src/lib/icons.ts",
   // The rest of what tokens/glyphs.json builds: the player's two registries, the generator and its
   // test. glyphs.json is a system path, and a change to it (a bold twin per glyph, D274) must
   // regenerate all three registries in the same pull request or `glyphs --check` fails.
@@ -117,7 +120,48 @@ const CALL_SITES = ["apps/web/src/", "apps/web/e2e/", "apps/admin/src/"];
  * replaced. A family's pull request adds the names it retires here, so its own call sites count.
  */
 export const SYSTEM_NAMES =
-  /--ghost-(?:accent-)?(?:hover|pressed)\b|\btabs-bar\b|\bButton\b|buttonClass|<(?:Lazy)?Icon(?![\w.])|<Badge(?![\w.])|<Flag(?![\w.])|<Code(?![\w.])|codeSnippetHtml|wireCodeCopy|styles\/code\.css|glowFavorite|--radius-round\b|styles\/glow\.css|flagNode|flagParts|showText|shownText|FLAG_REGIONS|flagSymbolId|styles\/flag\.css|<RowExit(?![\w.])|rowExitClass|<Avatar(?![\w.])|avatarMarkup|avatarClass|PlayPauseIcons|badgeClass|badge-label|iconClass|iconHtml|icon-glyph|text-(?:display|title|heading)\b|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|selectSheet|data-select-sheet|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select|sheet|drawer)\.css|data-sheet=|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<LibraryItemMenu(?![\w.])|sheetHeadHtml|<Ripple(?![\w.])|installRipple|data-ripple|<Banner(?![\w.])|bannerClass|bannerText|player-notice|<Dialog(?:Actions)?(?![\w.])|dialogClass|dialogActionsClass|dialogBodyClass|DIALOG_SELECTOR|confirm-(?:dialog|form|actions)|<DialogTitle|dialogTitleClass|<Sheet(?![\w.])|sheet(?:Body|Head|Title)?Class|(?:CREATE_|PANEL_)?SHEET_SELECTOR|create-sheet(?:-head|-body)?\b|drawer(?:Scrim|Viewport|Popup|Panel|Head)Class|sheet-(?:scrim|viewport|popup|panel)/;
+  /\bdesign-system\/|--ghost-(?:accent-)?(?:hover|pressed)\b|\btabs-bar\b|\bButton\b|buttonClass|<(?:Lazy)?Icon(?![\w.])|<Badge(?![\w.])|<Flag(?![\w.])|<Code(?![\w.])|codeSnippetHtml|wireCodeCopy|styles\/code\.css|glowFavorite|--radius-round\b|styles\/glow\.css|flagNode|flagParts|showText|shownText|FLAG_REGIONS|flagSymbolId|styles\/flag\.css|<RowExit(?![\w.])|rowExitClass|<Avatar(?![\w.])|avatarMarkup|avatarClass|PlayPauseIcons|badgeClass|badge-label|iconClass|iconHtml|icon-glyph|text-(?:display|title|heading)\b|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|selectSheet|data-select-sheet|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select|sheet|drawer)\.css|data-sheet=|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<LibraryItemMenu(?![\w.])|sheetHeadHtml|<Ripple(?![\w.])|installRipple|data-ripple|<Banner(?![\w.])|bannerClass|bannerText|player-notice|<Dialog(?:Actions)?(?![\w.])|dialogClass|dialogActionsClass|dialogBodyClass|DIALOG_SELECTOR|confirm-(?:dialog|form|actions)|<DialogTitle|dialogTitleClass|<Sheet(?![\w.])|sheet(?:Body|Head|Title)?Class|(?:CREATE_|PANEL_)?SHEET_SELECTOR|create-sheet(?:-head|-body)?\b|drawer(?:Scrim|Viewport|Popup|Panel|Head)Class|sheet-(?:scrim|viewport|popup|panel)/;
+
+const SYSTEM_DIR = "apps/web/src/design-system/";
+const SOURCE_FILE = /\.(?:ts|tsx|astro|mjs|js)$/;
+const RELATIVE_IMPORT = /(?:from|import)\s*\(?\s*["'](\.{1,2}\/[^"']*)["']/g;
+
+/**
+ * The design system must not import app code, so it can be lifted into a package of its own
+ * (repo plan, step 3). A relative import that leaves design-system/ may reach only what the system
+ * owns: the stylesheets, fonts and flags in SYSTEM_PATHS, and tokens/. `sources` is each file's
+ * repo-relative path and text; the result names each import that reaches out, as "file: specifier".
+ */
+export function boundaryProblems(sources) {
+  const owned = SYSTEM_PATHS.filter(
+    (path) => path !== SYSTEM_DIR && (path.startsWith("apps/web/") || path.startsWith("tokens/")),
+  );
+  return sources.flatMap(({ file, text }) =>
+    [...text.matchAll(RELATIVE_IMPORT)].flatMap(([, specifier]) => {
+      const target = posix.join(posix.dirname(file), specifier.replace(/[?#].*$/, ""));
+      // A folder owns what is under it, a file only itself (icon.css owns no icon.css.ts); the flags
+      // prefix also takes its sprite.
+      const owns = (path) =>
+        path.endsWith("/") || path.endsWith("/flags") ? target.startsWith(path) : target === path;
+      return target.startsWith(SYSTEM_DIR) || owned.some(owns) ? [] : [`${file}: ${specifier}`];
+    }),
+  );
+}
+
+/** Every source file under design-system/, as boundaryProblems reads them. */
+export function systemSources(root) {
+  const found = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
+      const path = posix.join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (SOURCE_FILE.test(entry.name))
+        found.push({ file: path, text: readFileSync(join(root, path), "utf8") });
+    }
+  };
+  walk(SYSTEM_DIR.slice(0, -1));
+  return found;
+}
 
 const startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsWith(prefix));
 
@@ -251,6 +295,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     .filter(([file]) => files.includes(file))
     .flatMap(([file, lists]) => allowlistAdditions(show(before, file), show("HEAD", file), lists));
   const problems = checkDesignSystemPr({ files, labels, namesSystem, added });
+  for (const reach of boundaryProblems(systemSources(process.cwd()))) {
+    problems.push(
+      `${reach} leaves design-system/ for app code. The system imports only its own files, its stylesheets and tokens/: move the module into design-system/, or pass the value in as a prop.`,
+    );
+  }
   for (const problem of problems) console.log(`::error::${problem}`);
   console.log(
     problems.length

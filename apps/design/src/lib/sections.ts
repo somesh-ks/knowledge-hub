@@ -1,4 +1,4 @@
-import type { IconName } from "../../../web/src/lib/icons";
+import type { IconName } from "../../../web/src/design-system/icons";
 
 /** One page of the guide. */
 export interface Section {

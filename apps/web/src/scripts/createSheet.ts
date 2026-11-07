@@ -1,7 +1,7 @@
+import { sheetGestures } from "../design-system/pullDismiss";
 import { CREATE_SHEET_SELECTOR, sheetBodyClass } from "../design-system/sheet";
 import { installCreate } from "./createPage";
 import { fitAboveKeyboard } from "./keyboardFit";
-import { sheetGestures } from "./pullDismiss";
 
 /**
  * The Create sheet: a native dialog cloned from the layout's template on first open (the markup is

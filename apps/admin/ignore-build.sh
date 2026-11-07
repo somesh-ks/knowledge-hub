@@ -14,7 +14,6 @@ exec sh ../../scripts/deploy-batch.sh -- \
   ../web/src/components \
   ../web/src/design-system \
   ../web/src/assets \
-  ../web/src/lib/icons.ts \
   ../web/src/lib/brandMarks.ts \
   ../web/src/lib/healthRows.ts \
   ../web/src/scripts/segmentedNav.ts \
