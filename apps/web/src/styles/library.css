@@ -669,7 +669,7 @@ main.library [data-library][data-view="list"] .library-grid {
 }
 
 /* The ring sits 8px from the cover on every side, the inset of a sheet's rows (owner, 2026-11-01), on
-   a row-shaped tile of its own: on the link's own box it ran 2px off the cover, round the cover's
+   a tile of its own: on the link's own box it ran 2px off the cover, round the cover's
    corner (owner, 2026-11-07: no gap on the left). Not on the press tile (::after), which runs to the
    screen's edge on a phone and would keep its fill after a tap. */
 [data-library][data-view="list"] .card-link:focus-visible {
@@ -682,7 +682,12 @@ main.library [data-library][data-view="list"] .library-grid {
   position: absolute;
   inset-block: calc(var(--list-row-inset) - var(--space-2));
   inset-inline: calc(var(--space-2) * -1);
-  border-radius: var(--row-radius);
+  /* Concentric with the cover (cover.css: its corner is at most a quarter of it): the row's pill
+     corner came within the stroke of the cover's corner. */
+  border-radius: calc(
+    min(var(--cover-radius, var(--cover-radius-hero)), var(--list-cover) / 4) +
+    var(--space-2)
+  );
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
   pointer-events: none;
