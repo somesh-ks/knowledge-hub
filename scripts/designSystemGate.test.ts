@@ -64,6 +64,20 @@ describe("design-system gate", () => {
     ).toEqual([]);
   });
 
+  // Mid-move, a branch that edits the old paths lands a change the move then loses or must redo.
+  it("freezes the system while the move to its package is open, and lets the move itself through", () => {
+    const files = ["apps/web/src/design-system/Button.astro", "pnpm-lock.yaml"];
+    const frozen = checkDesignSystemPr({
+      files: files.slice(0, 1),
+      labels: ["design-system"],
+      frozenBy: [760],
+    });
+    expect(frozen).toHaveLength(1);
+    expect(frozen[0]).toContain("#760");
+    expect(checkDesignSystemPr({ files: ["docs/x.md"], labels: [], frozenBy: [760] })).toEqual([]);
+    expect(checkDesignSystemPr({ files, labels: ["ds-migration"], frozenBy: [] })).toEqual([]);
+  });
+
   it("holds a labelled pull request to app files that name the system, and to its own records", () => {
     const names = new Set(["apps/web/src/components/Banner.astro"]);
     const files = [

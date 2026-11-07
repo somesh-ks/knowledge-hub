@@ -72,6 +72,10 @@ jobs:
       - name: Label and scope
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
+          # The freeze (D382 step 4) lists open ds-migration pull requests; this one is left out.
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
           # A label added with GITHUB_TOKEN starts no new run, so the step above hands it over here.
           LABELS: ${{ (github.event.action == 'opened' || github.event.action == 'reopened') && '["design-system"]' || toJson(github.event.pull_request.labels.*.name) }}
         run: node scripts/designSystemGate.mjs

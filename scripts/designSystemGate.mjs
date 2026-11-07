@@ -10,6 +10,14 @@ import { fileURLToPath } from "node:url";
 
 export const LABEL = "design-system";
 
+/**
+ * The label of the one pull request that moves the system to its package (D382 step 4). While one
+ * is open, every other pull request that touches a system path fails, so nothing lands on the old
+ * paths mid-move; the freeze ends when it merges, and an open branch then runs the committed codemod.
+ * The move itself touches manifests, the lockfile and workflows, so the scope check does not hold it.
+ */
+export const MIGRATION_LABEL = "ds-migration";
+
 /** What the owner reviews: the components, the stylesheets they share, the tokens and the guide. */
 export const SYSTEM_PATHS = [
   "apps/web/src/design-system/",
@@ -230,7 +238,14 @@ export function allowlistAdditions(before, after, lists) {
  * The problems with a pull request, given its changed files, its labels and what it adds to the
  * allowlists. Empty means it may go on.
  */
-export function checkDesignSystemPr({ files, labels, namesSystem = () => false, added = [] }) {
+export function checkDesignSystemPr({
+  files,
+  labels,
+  namesSystem = () => false,
+  added = [],
+  frozenBy = [],
+}) {
+  if (labels.includes(MIGRATION_LABEL)) return [];
   const labelled = labels.includes(LABEL);
   const touched = files.filter(
     (file) => startsWithAny(file, SYSTEM_PATHS) && !WORKSPACE_PLUMBING.includes(file),
@@ -241,6 +256,12 @@ export function checkDesignSystemPr({ files, labels, namesSystem = () => false, 
       `This pull request changes the design system (${touched.slice(0, 3).join(", ")}` +
         `${touched.length > 3 ? `, and ${touched.length - 3} more` : ""}), so it needs the ` +
         `"${LABEL}" label and the owner's merge. Add the label, or move the system change to its own pull request.`,
+    );
+  }
+  if (touched.length > 0 && frozenBy.length > 0) {
+    problems.push(
+      `The design system is frozen while #${frozenBy.join(", #")} moves it to its package ` +
+        `("${MIGRATION_LABEL}"). Wait for it to merge, run its codemod on this branch, and push again.`,
     );
   }
   if (added.length > 0 && !labelled) {
@@ -294,7 +315,24 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const added = Object.entries(ALLOWLISTS)
     .filter(([file]) => files.includes(file))
     .flatMap(([file, lists]) => allowlistAdditions(show(before, file), show("HEAD", file), lists));
-  const problems = checkDesignSystemPr({ files, labels, namesSystem, added });
+  // The open move, if any, other than this pull request (CI passes GH_REPO and PR). A local run
+  // skips the freeze.
+  const frozenBy = process.env.GH_REPO
+    ? execFileSync(
+        "gh",
+        [
+          "api",
+          `repos/${process.env.GH_REPO}/issues?state=open&labels=${MIGRATION_LABEL}&per_page=100`,
+          "--jq",
+          ".[] | select(.pull_request) | .number",
+        ],
+        { encoding: "utf8" },
+      )
+        .split("\n")
+        .filter((number) => number && number !== process.env.PR)
+        .map(Number)
+    : [];
+  const problems = checkDesignSystemPr({ files, labels, namesSystem, added, frozenBy });
   for (const reach of boundaryProblems(systemSources(process.cwd()))) {
     problems.push(
       `${reach} leaves design-system/ for app code. The system imports only its own files, its stylesheets and tokens/: move the module into design-system/, or pass the value in as a prop.`,
