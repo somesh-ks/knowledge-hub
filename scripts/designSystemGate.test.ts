@@ -12,8 +12,16 @@ import {
 // when a screen changes. The gate holds the two halves of one rule: system changes carry the label,
 // and a labelled pull request carries nothing else.
 describe("design-system gate", () => {
+  // A repo-wide move (npm to pnpm, D382) edits every app's manifest and deploy config, the guide's
+  // too; that is not a system change, and the label would then reject the rest of the move.
   it("lets a feature pull request through when it leaves the system alone", () => {
-    const files = ["apps/web/src/pages/library.astro", "packages/engine/src/run.ts"];
+    const files = [
+      "apps/web/src/pages/library.astro",
+      "packages/engine/src/run.ts",
+      "apps/design/package.json",
+      "apps/design/vercel.json",
+      "apps/design/ignore-build.sh",
+    ];
     expect(checkDesignSystemPr({ files, labels: ["review"] })).toEqual([]);
   });
 
