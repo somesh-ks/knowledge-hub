@@ -78,6 +78,7 @@ const MAY_CHANGE = [
   // changes them with it (D378 folded --color-on-surface-subtle).
   "scripts/prototype/ui-prototype.css",
   "scripts/soundLab/sound-lab.css",
+  "scripts/houseRules.test.ts",
   "scripts/gate.mjs",
   "docs/state.md",
   // The Icon moved into the system (D266), and the BrandMark, the shell and utility stylesheets and the
