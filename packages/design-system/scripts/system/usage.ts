@@ -1,7 +1,6 @@
 /**
  * The usage comment written over a shared class in its stylesheet: the owner's wording of what a
- * part is for. The system file (build.ts) and the style guide (apps/web/src/lib/designCatalogue.ts)
- * both read it from here.
+ * part is for, which the system file (build.ts) publishes.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

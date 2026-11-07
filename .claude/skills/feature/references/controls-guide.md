@@ -13,7 +13,7 @@ Which part for which need is generated, so it cannot drift from the code: `npm r
 ## 2. Markup & Usage Contracts
 
 ### Button (`design-system/Button.astro`, D237)
-One component, three variants; a page never types the `button-*` classes (`designSystem.test.ts` fails it).
+One component, three variants; a page never types the `button-*` classes (`scripts/systemUse.test.ts` fails it).
 ```astro
 <Button variant="filled" type="submit">Save</Button>
 <Button variant="tonal" class="topic-add-source" data-add-source>Add source</Button>

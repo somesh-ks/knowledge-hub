@@ -1,5 +1,5 @@
 /** What the style guide's pages read at build time: the tokens, grouped as the tiers group them. */
-import { type CatalogueToken, tokenGroups } from "../../../web/src/lib/designCatalogue";
+import { type CatalogueToken, tokenGroups } from "./catalogue";
 
 export const semantic = tokenGroups("semantic");
 export const primitive = tokenGroups("primitive");
