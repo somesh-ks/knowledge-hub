@@ -264,6 +264,39 @@
       },
       "verified": true,
       "model_fallbacks": 0
+    },
+    {
+      "run_id": "2026-11-07T04:01:08.792Z",
+      "at": "2026-11-07T05:57:00.285Z",
+      "digest_id": "2026-11-07",
+      "kind": "regular",
+      "mode": "scheduled",
+      "replace": false,
+      "outcome": "published",
+      "stage_ms": {
+        "fetch": 130815,
+        "judge": 6296,
+        "write": 5984666,
+        "validate": 893
+      },
+      "total_ms": 6129561,
+      "funnel": {
+        "pool": 547,
+        "written": 23,
+        "grounding_dropped": 0,
+        "grounding_pruned": 11,
+        "validate_dropped": 2,
+        "refill_written": 0,
+        "refill_kept": 0,
+        "aired": 12
+      },
+      "length": {
+        "asked_chars": 5330,
+        "aired_chars": 5777,
+        "share": 1.08
+      },
+      "verified": true,
+      "model_fallbacks": 0
     }
   ]
 }

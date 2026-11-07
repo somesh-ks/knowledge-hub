@@ -1,10 +1,10 @@
 {
   "version": 1,
   "last_cover": {
-    "palette": "ink-bone",
-    "template": "orbit"
+    "palette": "glacier",
+    "template": "dither"
   },
-  "last_fetch_at": "2026-11-05T04:01:03.981Z",
+  "last_fetch_at": "2026-11-07T04:01:08.792Z",
   "on_demand": {
     "at": "2026-11-06T07:39:53.534Z",
     "digest_id": "2026-11-05",
@@ -13,23 +13,23 @@
     "outcome": "published"
   },
   "regular": {
-    "at": "2026-11-05T05:57:00.358Z",
-    "digest_id": "2026-11-05",
-    "fetched_through": "2026-11-05T04:01:03.981Z",
-    "generated_at": "2026-11-05T04:12:05.988Z",
+    "at": "2026-11-07T05:57:00.285Z",
+    "digest_id": "2026-11-07",
+    "fetched_through": "2026-11-07T04:01:08.792Z",
+    "generated_at": "2026-11-07T05:43:18.353Z",
     "items": 12,
     "outcome": "published"
   },
   "spend": {
-    "at": "2026-11-06T07:39:53.534Z",
+    "at": "2026-11-07T05:57:00.285Z",
     "firecrawl_rate_limited": 0,
     "firecrawl_skipped": [],
     "requests": {
-      "anthropic": 15,
+      "anthropic": 206,
       "exa": 14,
-      "firecrawl_listing": 15,
-      "firecrawl_scrape": 9,
-      "jev": 635
+      "firecrawl_listing": 11,
+      "firecrawl_scrape": 10,
+      "jev": 612
     }
   },
   "weekly": {
