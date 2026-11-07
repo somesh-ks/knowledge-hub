@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile --ignore-scripts",
+  "installCommand": "cd ../.. && npx --yes pnpm@10.34.9 install --frozen-lockfile --ignore-scripts",
   "buildCommand": "pnpm run build",
   "ignoreCommand": "sh ../../scripts/deploy-batch.sh -- . ../../packages ../../tokens ../../scripts ../../package.json ../../pnpm-lock.yaml",
   "git": {
