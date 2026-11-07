@@ -4,17 +4,17 @@
 // One process starts the others, so a shell that is slow to spawn (Git Bash on Windows: 3 to 8 s a
 // process, against 50 ms from PowerShell) pays once. Exit 1 if any step fails.
 //
-// Usage: npm run gate [-- --build]
+// Usage: pnpm run gate [--build]
 import { spawn } from "node:child_process";
 
 const chains = [
-  [{ name: "typecheck", command: "npm run typecheck:packages" }],
-  [{ name: "lint", command: "npm run lint" }],
-  [{ name: "test", command: "npm test" }],
+  [{ name: "typecheck", command: "pnpm run typecheck:packages" }],
+  [{ name: "lint", command: "pnpm run lint" }],
+  [{ name: "test", command: "pnpm test" }],
   [
-    { name: "site types", command: "npm run check -w @singularity/web" },
-    { name: "admin types", command: "npm run check -w @singularity/admin" },
-    { name: "design types", command: "npm run check -w @singularity/design" },
+    { name: "site types", command: "pnpm --filter @singularity/web run check" },
+    { name: "admin types", command: "pnpm --filter @singularity/admin run check" },
+    { name: "design types", command: "pnpm --filter @singularity/design run check" },
   ],
   [{ name: "docs", command: "node scripts/docsCheck.mjs" }],
 ];
@@ -22,7 +22,7 @@ if (process.argv.includes("--build")) {
   // Behind the type checks: each app writes its own .astro, and the site's build follows its check.
   chains[3].push({
     name: "build",
-    command: "npm run build",
+    command: "pnpm run build",
     env: { SINGULARITY_STATIC_ONLY: "1" },
   });
 }

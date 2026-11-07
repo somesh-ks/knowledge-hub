@@ -58,15 +58,16 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       # Only the engine's packages: the site's (Astro, React, Playwright) are not needed to run it, and
       # leaving them out takes the install from about 10 seconds to about 4.
       - name: Install
-        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
 
       # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
       # the runner image does not carry: without it the Opus copy is skipped and the MP3 plays alone.
@@ -121,7 +122,7 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: |
           for attempt in 1 2 3; do
-            npm run --silent singularity -- content pull --track || { sleep $((attempt * 10)); continue; }
+            pnpm run --silent singularity -- content pull --track || { sleep $((attempt * 10)); continue; }
             exit 0
           done
           exit 1
@@ -149,7 +150,7 @@ jobs:
         run: |
           prune_args=(--prune 120)
           [ "$PRUNE_NOW" = "true" ] && prune_args+=(--prune-now)
-          npm run --silent singularity -- publish "${prune_args[@]}"
+          pnpm run --silent singularity -- publish "${prune_args[@]}"
 
       # Whatever narrate did: a timeline it wrote must reach the store even when a later digest failed
       # or the commit did not push, or the next run narrates the same digest again and pays for it
@@ -161,7 +162,7 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: |
           for attempt in 1 2 3; do
-            npm run --silent singularity -- content push || { sleep $((attempt * 10)); continue; }
+            pnpm run --silent singularity -- content push || { sleep $((attempt * 10)); continue; }
             exit 0
           done
           exit 1

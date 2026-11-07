@@ -8,4 +8,4 @@ exec sh ../../scripts/deploy-batch.sh -- \
   ../../tokens \
   ../web/src \
   ../../package.json \
-  ../../package-lock.json
+  ../../pnpm-lock.yaml

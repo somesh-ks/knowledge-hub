@@ -14,17 +14,17 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 
 ## Commands
 
-- `npm run singularity -- <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
-- `npm run gate -- --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build.
+- `pnpm run singularity <command>`: engine CLI (`doctor`, `status`, `models`, `run`, `publish`).
+- `pnpm run gate --build`: typecheck, `astro check`, lint, unit tests, the docs check and the static build.
 - Run commands through PowerShell, not Git Bash ([learnings](docs/learnings.md)). Never stop the listener on port 4321 (owner's dev server); give browser suites a `PORT` above 4400.
 - A worktree gets packages from `node scripts/worktreeLinks.mjs <path>` and loses them with `--remove` before `git worktree remove`.
-- `npm run e2e -w @singularity/web` and `npm run e2e:player -w @singularity/web`: the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
-- `SINGULARITY_STATIC_ONLY=1 npm run build`: local site build (adapter fails on Windows symlinks).
-- `npm run dev`: the site with the Agentation toolbar; `checkBundle` fails a build that contains it. Stop it when done (`npx astro dev stop` in `apps/web`).
+- `pnpm --filter @singularity/web run e2e` and `pnpm --filter @singularity/web run e2e:player`: the browser suites. Run both before a PR that touches the site, `packages` or the tokens; push once. Red check: [delivery failures](docs/engineering/delivery-failures.md) (D148).
+- `SINGULARITY_STATIC_ONLY=1 pnpm run build`: local site build (adapter fails on Windows symlinks).
+- `pnpm run dev`: the site with the Agentation toolbar; `checkBundle` fails a build that contains it. Stop it when done (`pnpm exec astro dev stop` in `apps/web`).
 
 ## Rules
 
-- Never read, print or ask for key values. Keys live in the gitignored `.env`; `npm run secrets:push` sends them to GitHub and Vercel.
+- Never read, print or ask for key values. Keys live in the gitignored `.env`; `pnpm run secrets:push` sends them to GitHub and Vercel.
 - Commits are Conventional Commits. Digest, state and config commits go through the write guard.
 - No em dashes. Persisted data is snake_case; docs and config files are lowercase kebab-case.
 - Do not edit `Digests/` or `state/` by hand.
@@ -32,14 +32,14 @@ On demand: [docs/specs/](docs/specs/README.md) for what a capability does (code 
 - Review before merge (D292): [code-review.md](docs/engineering/code-review.md). `[skip-review]` and green CI only if every file is Tier 0: docs outside `decisions/`, `engineering/`, `design/` and the ledger, test data, or a few-line copy fix outside Tier 2 (D254). Tier 2 (pipeline, store, auth, billing, workflows, design system, `AGENTS.md`, `.coderabbit.yaml`, gates): `cr review --deep` first; `/code-review` last. CodeRabbit reviews on open, then only on `@coderabbitai review`.
 - TypeScript stays on 6.x.
 - Change log (D355): CI fails a `feat`/`fix`/`perf` PR while `lib/changelog.ts` is over 2 days old.
-- UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `npm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR.
+- UI keeps the 8pt grid (4px for named cases only) and the design system, in three layers: `pnpm run design-check` (a hook on each UI edit), e2e/designSystem.spec.ts (CI), the `design-audit` agent before the PR.
 - The design system is a product (D237, D253). A control is a component in `apps/web/src/design-system/` named for what it is (Button); a page draws it, never types its class. A UI fix starts at the component. If the system cannot express the request, stop, propose a small deviation and wait for the owner's OK; never deviate silently. A page patch needs a PR reason and a `PAGE_OVERRIDES` entry. Changes join the one rolling `design-system` PR the owner merges (D254). No flag emoji: Flag (D367).
-- Design fixes are load-bearing: markup or rules with a rationale comment are never removed or rewritten for another task; extend or ask. Before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens) check `git log -L '/<selector>/,+20:<file>'` and the ledger. `npm run design-check` checks CSS rules; browser suites verify rendered CSS.
+- Design fixes are load-bearing: markup or rules with a rationale comment are never removed or rewritten for another task; extend or ask. Before changing shared CSS (`player.css`, `primitives.css`, `buttons.css`, tokens) check `git log -L '/<selector>/,+20:<file>'` and the ledger. `pnpm run design-check` checks CSS rules; browser suites verify rendered CSS.
 - Scope: one PR per task per thread; review fixes and follow-ups go on its branch, never a new PR; batch small fixes (D254). Limits: CodeRabbit about 10 reviews an hour, Vercel 100 deploys a day. Before a PR, `git diff --stat origin/main` must list only the task's files; name any shared stylesheet or component in it, and why, in the PR body.
-- UI parts: before you write a class, token or value, run `npm run ds -- find "<need>"`. Features: `.claude/skills/feature/`.
+- UI parts: before you write a class, token or value, run `pnpm run ds find "<need>"`. Features: `.claude/skills/feature/`.
 - State authority: the config store owns the owner's config; its files are not in git (D296). Edit in the app, never a PR; `config pull` fills `config/` locally.
 - Pipeline discipline: verify the core daily loop runs green in production before adding new intake types or audience matrices.
-- Vercel: the CLI is pinned. Read with `npm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env. Production waits for 5 merges or 3 hours (D375); `[deploy]` ending a PR title ships now.
+- Vercel: the CLI is pinned. Read with `pnpm run vercel:list`, `vercel:inspect`, `vercel:logs`, `vercel:env-list`; a session never deploys or edits env. Production waits for 5 merges or 3 hours (D375); `[deploy]` ending a PR title ships now.
 
 ## Code
 

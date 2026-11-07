@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Moved from package.json "overrides" (npm). Same pins.
+overrides:
+  "@vercel/routing-utils>path-to-regexp": 6.3.0
+  "@vercel/cli-config>zod": 4.6.7

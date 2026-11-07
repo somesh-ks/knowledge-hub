@@ -95,7 +95,7 @@ const MAY_CHANGE = [
   ".claude/skills/feature/",
   "AGENTS.md",
   "package.json",
-  "package-lock.json",
+  "pnpm-lock.yaml",
 ];
 
 /** App code a labelled pull request may touch, but only a file that names the system (see below). */

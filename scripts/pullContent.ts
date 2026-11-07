@@ -27,7 +27,7 @@ if (fixtures || !hasStore) {
   process.exit(0);
 }
 const pulled = spawnSync(
-  "npm",
+  "pnpm",
   ["run", "--silent", "singularity", "--", "content", "pull", "--root", root],
   { cwd: root, env: process.env, stdio: "inherit", shell: process.platform === "win32" },
 );

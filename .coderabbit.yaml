@@ -29,7 +29,7 @@ reviews:
     - "!docs/learnings.md"
     - "!docs/state.md"
     - "!docs/backlog.md"
-    - "!package-lock.json"
+    - "!pnpm-lock.yaml"
     - "!**/dist/**"
     - "!**/.astro/**"
   # D292: the pre-merge docstring check and the finishing touches are off. Docstrings are not a house

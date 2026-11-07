@@ -14,7 +14,7 @@
       "!docs/prototype",
       "!**/fixtures",
       "!loop/results",
-      "!package-lock.json",
+      "!pnpm-lock.yaml",
       "!apps/web/public/emoji.json",
       "!tokens/system.json",
       "!state",

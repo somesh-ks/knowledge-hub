@@ -10,40 +10,46 @@ const SHARED_RULES = [
     pattern: /^tokens\//,
     risk: "HIGH",
     surface: "Design Tokens (all pages: color, typography, spacing, elevation)",
-    checks: ["npm run design-check", "npm run e2e -w @singularity/web -- e2e/designSystem.spec.ts"],
+    checks: [
+      "pnpm run design-check",
+      "pnpm --filter @singularity/web run e2e e2e/designSystem.spec.ts",
+    ],
   },
   {
     pattern:
       /^apps\/web\/src\/styles\/(?:tokens|primitives|buttons|shell|foundations|player|sheets)\.css$/,
     risk: "HIGH",
     surface: "Shared CSS Primitives (buttons, chips, navigation, sheets across all pages)",
-    checks: ["npm run design-check", "npm run e2e -w @singularity/web -- e2e/designSystem.spec.ts"],
+    checks: [
+      "pnpm run design-check",
+      "pnpm --filter @singularity/web run e2e e2e/designSystem.spec.ts",
+    ],
   },
   {
     pattern: /^apps\/web\/src\/layouts\//,
     risk: "HIGH",
     surface: "App Shell Layouts (BaseLayout, head scripts, viewport units)",
-    checks: ["npm run check -w @singularity/web", "npm run e2e -w @singularity/web"],
+    checks: ["pnpm --filter @singularity/web run check", "pnpm --filter @singularity/web run e2e"],
   },
   {
     pattern: /^packages\/core\//,
     risk: "HIGH",
     surface: "Core Schema & Contracts (runtime types, structure, preferences, models)",
-    checks: ["npm run typecheck:packages", "npm test"],
+    checks: ["pnpm run typecheck:packages", "pnpm test"],
   },
   {
     pattern: /^apps\/web\/src\/player\//,
     risk: "MEDIUM",
     surface: "Interactive Audio Player Island (playback, transcript, scrubber, queue)",
-    checks: ["npm run e2e:player -w @singularity/web"],
+    checks: ["pnpm --filter @singularity/web run e2e:player"],
   },
   {
     pattern: /^apps\/web\/src\/(?:sheets|components\/Create)/,
     risk: "MEDIUM",
     surface: "Creation & Drawer Sheets (New episode, prompt adjustments, topics panel)",
     checks: [
-      "npm run check -w @singularity/web",
-      "npm run e2e -w @singularity/web -- e2e/create.spec.ts",
+      "pnpm --filter @singularity/web run check",
+      "pnpm --filter @singularity/web run e2e e2e/create.spec.ts",
     ],
   },
   {
@@ -52,15 +58,15 @@ const SHARED_RULES = [
     risk: "MEDIUM",
     surface: "Settings & Preferences (podcast structure, categories, voice, sound)",
     checks: [
-      "npx vitest run apps/web/src/lib/structureView.test.ts",
-      "npm run e2e -w @singularity/web -- e2e/settings.spec.ts e2e/topics.spec.ts",
+      "pnpm exec vitest run apps/web/src/lib/structureView.test.ts",
+      "pnpm --filter @singularity/web run e2e e2e/settings.spec.ts e2e/topics.spec.ts",
     ],
   },
   {
     pattern: /^apps\/web\/src\/lib\/(?:sheetHead|icons)\.ts$/,
     risk: "MEDIUM",
     surface: "Shared HTML Templates & Glyphs (sheet headers, menu items, action rows)",
-    checks: ["npx vitest run apps/web/src/lib/sheetHead.test.ts"],
+    checks: ["pnpm exec vitest run apps/web/src/lib/sheetHead.test.ts"],
   },
   {
     pattern: /^docs\//,

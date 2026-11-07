@@ -172,7 +172,7 @@ for (const [name, dir] of own) {
 }
 const shared = (name) => !own.has(name) && !isMainOwn(join(modules, name));
 for (const name of readdirSync(modules)) {
-  if (name === ".package-lock.json" || name === ".cache" || name === ".vite") continue;
+  if (name === ".modules.yaml" || name === ".cache" || name === ".vite") continue;
   const path = join(modules, name);
   // Every scope is a real folder in the worktree with one junction per package, never one junction for
   // the scope: a tool that writes or deletes inside a scope junction acts on the main checkout (it
