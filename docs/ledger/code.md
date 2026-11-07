@@ -22,7 +22,7 @@ Each answers a bug that cost real time here. Reuse them in any web app; the skil
 | Hidden elements showed | Author `display` rules beat the UA `[hidden]` rule; add a global rule and test every page | `styles/foundations.css:158` |
 | The CSP blocked page scripts | Inlined assets become inline scripts; `assetsInlineLimit: 0` keeps them files | `astro.config.mjs:150` |
 | Favicons needed `img-src https:` | A same-origin icon proxy with a letter fallback | `pages/api/site-icon.ts` |
-| The head script could not restore view choices | A 512-byte budget; restore anything beyond the theme one frame later from the page script | `scripts/themeInit.js` |
+| The head script could not restore view choices | A 512-byte budget; restore anything beyond the theme one frame later from the page script | `packages/design-system/scripts/themeInit.js` |
 | Two theme keys fought | One preferences key, read by the head script | `player/core/preferences.ts:9` |
 | A phone screenshot looked cropped | Headless Chrome has a minimum window width; emulate the device or render inside a 390px iframe | browser suites |
 | A picker list drifted from its field | It was placed once; close on scroll (capture, passive) and set `transform-origin` from the trigger | `scripts/picker.ts:198`, `:315` |

@@ -17,7 +17,7 @@ const SHARED_RULES = [
   },
   {
     pattern:
-      /^(?:packages\/design-system\/styles\/(?:tokens|primitives|buttons|foundations)|apps\/web\/src\/styles\/(?:shell|player|sheets))\.css$/,
+      /^(?:packages\/design-system\/styles\/(?:tokens|primitives|buttons|foundations|shell)|apps\/web\/src\/styles\/(?:player|sheets))\.css$/,
     risk: "HIGH",
     surface: "Shared CSS Primitives (buttons, chips, navigation, sheets across all pages)",
     checks: [

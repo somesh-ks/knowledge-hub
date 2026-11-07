@@ -325,7 +325,7 @@ export function openEpisodeAction(trigger: HTMLElement): void {
   };
   // Browser Back closes the panel or the confirm and stays on the page, so typed feedback is not
   // lost to it. The dialog takes one history entry, as the Create sheet does (createSheet.ts): the
-  // head script (themeInit.js) asks first on every pop, and answering "handled" keeps the router out.
+  // head script (backInit.js) asks first on every pop, and answering "handled" keeps the router out.
   let entry = true;
   const onBack = (event: Event): void => {
     if (!entry) return;

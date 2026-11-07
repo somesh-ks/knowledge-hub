@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { classTokens, LLMS_PATH, SYSTEM_PATH } from "./build.js";
+import { buildSystem, classTokens, LLMS_PATH, SYSTEM_PATH } from "./build.js";
 import { findParts, findTokens } from "./query.js";
 import type { System } from "./types.js";
 import { usageComment } from "./usage.js";
@@ -29,10 +29,12 @@ describe("the design system file", () => {
   // Prevents publishing an opaque hex for a translucent color: the scrim was listed as #151618, which
   // reads as solid and drops the 42% that makes it a scrim.
   it("gives no hex to a translucent color", () => {
-    const scrim = system.tokens.find((token) => token.name === "--color-scrim");
-    expect(scrim?.light).toContain(" / ");
-    expect(scrim?.hex).toBeUndefined();
-    expect(system.tokens.find((token) => token.name === "--color-surface")?.hex).toBeDefined();
+    for (const built of [system, buildSystem()]) {
+      const scrim = built.tokens.find((token) => token.name === "--color-scrim");
+      expect(scrim?.light).toContain(" / ");
+      expect(scrim?.hex).toBeUndefined();
+      expect(built.tokens.find((token) => token.name === "--color-surface")?.hex).toBeDefined();
+    }
   });
 
   // Prevents a part showing another rule's comment: `.settings-row .multiselect` has a comment of its

@@ -12,6 +12,7 @@
     "./tokens/*": "./tokens/*",
     "./fonts/*": "./fonts/*",
     "./flags/*": "./flags/*",
+    "./scripts/themeInit.js": "./scripts/themeInit.js",
     "./scripts/*": "./scripts/*.ts",
     "./*.astro": "./src/*.astro",
     "./*": "./src/*.ts"

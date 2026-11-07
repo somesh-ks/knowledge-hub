@@ -78,11 +78,19 @@ const MAY_CHANGE = [
   // changes them with it (D378 folded --color-on-surface-subtle).
   "scripts/prototype/ui-prototype.css",
   "scripts/soundLab/sound-lab.css",
+  "scripts/houseRules.test.ts",
   "scripts/gate.mjs",
   "docs/state.md",
-  // The Icon moved into the system (D266), and the BrandMark (D382 step 4c); their old paths are deleted.
+  // The Icon moved into the system (D266), and the BrandMark, the shell and utility stylesheets and the
+  // head's theme script (D382 step 4c); their old paths are deleted.
   "apps/web/src/components/Icon.astro",
   "apps/web/src/components/BrandMark.astro",
+  "apps/web/src/styles/shell.css",
+  "apps/web/src/styles/utilities.css",
+  "apps/web/src/scripts/themeInit.js",
+  // The reader keeps the head script's back bridge, and hashes it and the system's theme script.
+  "apps/web/src/scripts/backInit.js",
+  "apps/web/astro.config.mjs",
   // The checks of how the apps draw the system, and the writer that passes them into the system file:
   // they read the apps, so they live outside the package (D382 step 4c).
   "scripts/system",

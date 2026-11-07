@@ -23,14 +23,16 @@ import PlayerRoot from "../player/PlayerRoot";
 import bannersInit from "../scripts/bannersInit.js?raw";
 // The theme script runs inline in the head so a stored light or dark choice never flashes the other
 // theme or style before first paint. astro.config.mjs hashes this same file into the Content-Security-Policy.
-// It also bridges popstate to singularity:back before the router's own listener, so the Create sheet can take Back (createSheet.ts).
-import themeInit from "../scripts/themeInit.js?raw";
+import themeInit from "@singularity/design-system/scripts/themeInit.js?raw";
+// The back script, inline after it, bridges popstate to singularity:back before the router's own listener,
+// so the Create sheet can take Back (createSheet.ts). It is hashed the same way.
+import backInit from "../scripts/backInit.js?raw";
 import { isShowingSavedContent } from "../server/contentRepo";
 import SheetsRoot from "../sheets/SheetsRoot";
 import "@singularity/design-system/styles/tokens.css";
 import "@singularity/design-system/styles/foundations.css";
 import "@singularity/design-system/styles/fonts.css";
-import "../styles/shell.css";
+import "@singularity/design-system/styles/shell.css";
 import "@singularity/design-system/styles/buttons.css";
 import "@singularity/design-system/styles/icon.css";
 import "@singularity/design-system/styles/flag.css";
@@ -50,7 +52,7 @@ import "../styles/create-sheet.css";
 import "@singularity/design-system/styles/sheet.css";
 import "@singularity/design-system/styles/dialog.css";
 import "../styles/queue.css";
-import "../styles/utilities.css";
+import "@singularity/design-system/styles/utilities.css";
 
 interface Props {
   /** The page title. The site name is appended. */
@@ -205,6 +207,7 @@ const back =
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href={appFont} as="font" type="font/woff2" crossorigin />
     <script is:inline set:html={themeInit.trim()} />
+    <script is:inline set:html={backInit.trim()} />
     <ClientRouter fallback="swap" />
   </head>
   <body>
