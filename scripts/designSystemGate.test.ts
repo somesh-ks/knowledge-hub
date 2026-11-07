@@ -67,7 +67,7 @@ describe("design-system gate", () => {
 
   // Mid-move, a branch that edits the old paths lands a change the move then loses or must redo.
   it("freezes the system while the move to its package is open, and lets the move itself through", () => {
-    const files = ["apps/web/src/design-system/Button.astro", "pnpm-lock.yaml"];
+    const files = ["packages/design-system/src/Button.astro", "pnpm-lock.yaml"];
     const frozen = checkDesignSystemPr({
       files: files.slice(0, 1),
       labels: ["design-system"],
