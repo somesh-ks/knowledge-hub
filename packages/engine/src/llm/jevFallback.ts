@@ -33,50 +33,90 @@ export function withModelFallback(
         if (error instanceof BudgetExceededError || error instanceof DeadlineExceededError) {
           throw error;
         }
-        const questions = request.questions as Record<string, QuestionLike>;
-        const shape: Record<string, z.ZodType> = {};
-        for (const [name, question] of Object.entries(questions)) {
-          const keys = Object.keys(question.criteria ?? {});
-          if (question.type === "noul") shape[name] = z.object({ noul: z.number().min(0).max(1) });
-          else if (question.type === "choice" && keys.length > 0) {
-            shape[name] = z.object({ choice: z.enum(keys as [string, ...string[]]) });
-          } else throw error;
-        }
-        log.warn("Jev failed; the routing chain answers this request instead", {
+        return answerWithRoutedModels(
+          router,
           step,
-          ...failureReason(error),
-        });
-        const boundary = newBoundary();
-        const asked = Object.entries(questions).map(([name, q]) => ({
-          name,
-          type: q.type,
-          question: q.instructions,
-          options: q.criteria,
-        }));
-        const schema = z.object(shape);
-        const result = await router.callModel(step, {
-          schema,
-          schemaName: "answers",
-          label: `${step} fallback`,
-          maxTokens: 400,
-          messages: [
-            {
-              role: "system",
-              content: `Answer each question about the data. For a noul question give the probability from 0 to 1 that the statement is true; for a choice question give exactly one option key. ${untrustedInstruction()}`,
-            },
-            {
-              role: "user",
-              content: `${boundaryLine(boundary)}\n\nQuestions: ${JSON.stringify(asked)}\n\n${wrapUntrusted(JSON.stringify(request.state), boundary, "state")}`,
-            },
-          ],
-        });
-        const answers: Record<string, unknown> = {};
-        const value = result.value as Record<string, Record<string, unknown>>;
-        for (const [name, question] of Object.entries(questions)) {
-          answers[name] = { type: question.type, ...value[name] };
-        }
-        return { answers };
+          request,
+          () => error,
+          () => {
+            log.warn("Jev failed; the routing chain answers this request instead", {
+              step,
+              ...failureReason(error),
+            });
+          },
+        );
       }
     },
   };
+}
+
+/**
+ * A Jev-shaped client that never calls Jev: the step's routing chain answers every request. Used
+ * when no Jev key is set, so grounding still checks each claim and the digest is not left unverified.
+ * A question that is neither a noul nor a choice needs Jev, so its request throws.
+ */
+export function routedJev(router: ModelRouter, step: ModelStep): JevClientLike {
+  return {
+    systemOne(request) {
+      return answerWithRoutedModels(router, step, request, (type) => {
+        return new Error(
+          `The ${step} step needs Jev for a ${type ?? "unknown"} question; the routed models answer only noul and choice questions.`,
+        );
+      });
+    },
+  };
+}
+
+/**
+ * Asks the routing chain each question of a Jev request and returns the answers in Jev's shape.
+ * `unsupported` gives the value to throw for a question that is neither a noul nor a choice, and
+ * `warn` runs once the request is known to be answerable.
+ */
+async function answerWithRoutedModels(
+  router: ModelRouter,
+  step: ModelStep,
+  request: Parameters<JevClientLike["systemOne"]>[0],
+  unsupported: (type: string | undefined) => unknown,
+  warn?: () => void,
+): Promise<{ answers: Record<string, unknown> }> {
+  const questions = request.questions as Record<string, QuestionLike>;
+  const shape: Record<string, z.ZodType> = {};
+  for (const [name, question] of Object.entries(questions)) {
+    const keys = Object.keys(question.criteria ?? {});
+    if (question.type === "noul") shape[name] = z.object({ noul: z.number().min(0).max(1) });
+    else if (question.type === "choice" && keys.length > 0) {
+      shape[name] = z.object({ choice: z.enum(keys as [string, ...string[]]) });
+    } else throw unsupported(question.type);
+  }
+  warn?.();
+  const boundary = newBoundary();
+  const asked = Object.entries(questions).map(([name, q]) => ({
+    name,
+    type: q.type,
+    question: q.instructions,
+    options: q.criteria,
+  }));
+  const schema = z.object(shape);
+  const result = await router.callModel(step, {
+    schema,
+    schemaName: "answers",
+    label: `${step} fallback`,
+    maxTokens: 400,
+    messages: [
+      {
+        role: "system",
+        content: `Answer each question about the data. For a noul question give the probability from 0 to 1 that the statement is true; for a choice question give exactly one option key. ${untrustedInstruction()}`,
+      },
+      {
+        role: "user",
+        content: `${boundaryLine(boundary)}\n\nQuestions: ${JSON.stringify(asked)}\n\n${wrapUntrusted(JSON.stringify(request.state), boundary, "state")}`,
+      },
+    ],
+  });
+  const answers: Record<string, unknown> = {};
+  const value = result.value as Record<string, Record<string, unknown>>;
+  for (const [name, question] of Object.entries(questions)) {
+    answers[name] = { type: question.type, ...value[name] };
+  }
+  return { answers };
 }

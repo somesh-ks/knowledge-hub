@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { makeCurateCommand } from "../src/commands/curate.js";
 import { makeRenderCommand } from "../src/commands/render.js";
 import { run as validate } from "../src/commands/validate.js";
-import type { ApiRuntimeFactory } from "../src/curate/apiRuntime.js";
+import { type ApiRuntimeFactory, createApiRuntime } from "../src/curate/apiRuntime.js";
 import { Selection, WrittenFile } from "../src/curate/selectionFile.js";
 import { computeWindow } from "../src/curate/window.js";
 import { validateDigest } from "../src/validate/validateDigest.js";
@@ -29,6 +29,19 @@ import { testLinter } from "./write-fakes.js";
 const RUN = "2026-10-07-regular";
 const SECRET = "test-secret-value";
 const ENV = { SINGULARITY_MODEL: "Qwen/Qwen3-32B" };
+/** A routing file with the steps the API runtime reads when it is built. */
+const ROUTING_CONFIG = {
+  version: 1,
+  families: {
+    "claude-haiku": { fallback_id: "claude-haiku-5-5" },
+    "gemini-flash": { fallback_id: "gemini-3.8-flash" },
+  },
+  steps: {
+    judge: { chain: [{ family: "claude-haiku" }] },
+    grounding: { chain: [{ family: "gemini-flash" }] },
+    story_writer: { chain: [{ family: "gemini-flash" }] },
+  },
+};
 
 let tr: TestRoot;
 beforeEach(async () => {
@@ -242,6 +255,20 @@ describe("singularity curate: errors", () => {
     const text = JSON.stringify(logs);
     expect(text).toContain("ANTHROPIC_API_KEY or GEMINI_API_KEY");
     expect(text).not.toContain(SECRET);
+  });
+
+  it("grounds through the routed models when no Jev key is set, so the digest is not left unverified", async () => {
+    await writeFile(join(tr.root, "config", "models.json"), JSON.stringify(ROUTING_CONFIG));
+    const { ctx } = makeContext(tr.root, { env: { ANTHROPIC_API_KEY: SECRET } });
+    const voice = {
+      principles: [],
+      limits: [],
+      examples: [],
+      headlineExamples: [],
+      bannedWords: [],
+      bannedPatterns: [],
+    };
+    expect(createApiRuntime(ctx, voice).grounder).not.toBeNull();
   });
 
   it("fails when there is no pool anywhere", async () => {

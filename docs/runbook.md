@@ -324,7 +324,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 
 1. A 429 or 529 means rate limit or an outage. The engine retries with backoff, then the routed fallback judge answers the items Jev could not. The run log warns when it does.
 2. A 401 means the key was revoked or expired. Rotate `TYPESAFE_API_KEY` (section 6).
-3. With `TYPESAFE_API_KEY` unset, the routed fallback judge answers alone, the grounding check is skipped and the digest is `verified: false`.
+3. With `TYPESAFE_API_KEY` unset, the routed fallback judge answers alone and grounding runs on the routed models (`config/models.json`); with none of their keys either, the digest is `verified: false`.
 4. If Jev stays down for days, check the TypeSafe console for status, balance and version retirements. The fallback judge is less calibrated, so scores shift. Revalidate thresholds with `singularity eval --yes --only judges,grounding` before trusting them again.
 
 ### 8.5 The site did not update

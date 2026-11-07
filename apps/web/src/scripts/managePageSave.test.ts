@@ -16,8 +16,10 @@ import {
   HELD_EVENT,
   type Held,
   KEPT,
+  keepHeld,
   keepWaiting,
   MAX_BODY_CHARS,
+  MAX_OPS,
   type Pending,
   pack,
   remember,
@@ -540,6 +542,118 @@ describe("a left page's held run", () => {
     expect(said.at(-1)).toEqual([GENERIC, "error"]);
     expect(anyPending(pending(), Date.now())).toBe(false);
   });
+
+  it("keeps a change held in the server's gap on the device when the page goes away, so a closed tab loses nothing", async () => {
+    const changes = new Map([["schedule", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    await flush(left);
+    changes.set("schedule", change({ op: "schedule.set", length_minutes: 3 }));
+    const run = flush(left);
+    keepHeld(left);
+    keepWaiting(left);
+    // The tab is killed now: the only copy of the edit must already be in storage.
+    expect(outboxOps()).toEqual([{ op: "schedule.set", length_minutes: 3 }]);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await run;
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    expect(posted.flat().filter((op) => "length_minutes" in op)).toHaveLength(1);
+    expect(outboxOps()).toEqual([]);
+  });
+
+  it("leaves held edits to their run when storage refuses to keep them, so each goes once, in order", async () => {
+    const changes = new Map([["time", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    await flush(left);
+    // One more than a request carries: two batches, kept together or not at all.
+    const held = Array.from({ length: MAX_OPS + 1 }, (_, at) => ({
+      op: "source.set" as const,
+      id: `s${at}`,
+      enabled: false,
+    }));
+    for (const op of held) changes.set(op.id, change(op));
+    const run = flush(left);
+    const storage = localStorage;
+    vi.stubGlobal("localStorage", {
+      ...storage,
+      getItem: (key: string) => storage.getItem(key),
+      // Room for the first batch, not the second: keeping it alone would send the second first.
+      setItem: (key: string, value: string) => {
+        if (value.includes(`"s${MAX_OPS}"`)) throw new DOMException("full", "QuotaExceededError");
+        storage.setItem(key, value);
+      },
+    });
+    keepHeld(left);
+    expect(left.changes.size).toBe(held.length);
+    vi.stubGlobal("localStorage", storage);
+    await vi.advanceTimersByTimeAsync(GAP_MS * 3);
+    await run;
+    expect(posted.slice(1).flat()).toEqual(held);
+    expect(outboxOps()).toEqual([]);
+  });
+
+  it("keeps an edit made while the request before it is on its way, and sends it after that one", async () => {
+    let answer: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => {
+        const { op } = JSON.parse(String(init.body)) as { op: ConfigOp | ConfigOp[] };
+        posted.push([op].flat());
+        if (posted.length > 1) return Promise.resolve(new Response("{}", { status: 202 }));
+        return new Promise<Response>((resolve) => {
+          answer = resolve;
+        });
+      }),
+    );
+    const changes = new Map([["time", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    const run = flush(left);
+    await vi.advanceTimersByTimeAsync(0);
+    changes.set("length", change({ op: "schedule.set", length_minutes: 3 }));
+    keepHeld(left);
+    keepWaiting(left);
+    // The tab is killed now: the request on its way goes with keepalive, the newer edit from storage.
+    expect(outboxOps()).toEqual([{ op: "schedule.set", length_minutes: 3 }]);
+    answer(new Response("{}", { status: 202 }));
+    await run;
+    await vi.advanceTimersByTimeAsync(GAP_MS + 500);
+    expect(posted).toEqual([
+      [{ op: "schedule.set", hour: 9 }],
+      [{ op: "schedule.set", length_minutes: 3 }],
+    ]);
+    expect(outboxOps()).toEqual([]);
+  });
+
+  it("keeps a held edit's older request ahead of it when that request is told to wait, so the two land in order", async () => {
+    let answer: (response: Response) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init: RequestInit) => {
+        const { op } = JSON.parse(String(init.body)) as { op: ConfigOp | ConfigOp[] };
+        posted.push([op].flat());
+        if (posted.length > 1) return Promise.resolve(new Response("{}", { status: 202 }));
+        return new Promise<Response>((resolve) => {
+          answer = resolve;
+        });
+      }),
+    );
+    const changes = new Map([["time", change({ op: "schedule.set", hour: 9 })]]);
+    const { context: left } = page(changes);
+    const run = flush(left);
+    await vi.advanceTimersByTimeAsync(0);
+    changes.set("length", change({ op: "schedule.set", length_minutes: 3 }));
+    keepHeld(left);
+    answer(new Response(JSON.stringify({ error: "too_soon", retry_after_s: 30 }), { status: 429 }));
+    // Nothing goes again before the wait the server asked for.
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(posted).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
+    await run;
+    expect(posted.slice(1).flat()).toEqual([
+      { op: "schedule.set", hour: 9 },
+      { op: "schedule.set", length_minutes: 3 },
+    ]);
+    expect(outboxOps()).toEqual([]);
+  });
 });
 
 describe("remember", () => {
@@ -745,7 +859,7 @@ describe("edits kept on the device while the site cannot be reached (CFG-04)", (
     expect(readOutbox()).toEqual([]);
     expect(toasts).toEqual([
       expect.objectContaining({
-        message: `A change you made offline didn't save. ${REASONS[400]}`,
+        message: `A change you made earlier didn't save. ${REASONS[400]}`,
         kind: "error",
       }),
     ]);

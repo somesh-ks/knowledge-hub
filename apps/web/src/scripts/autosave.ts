@@ -221,23 +221,31 @@ export function mountAutosave(
   });
   // Leaving or hiding the page sends what is waiting; a request on its way finishes with keepalive.
   const off = new AbortController();
-  const leave = (): void => {
+  // gone: the document may be closed (hidden, pagehide), so a change held in the server's gap goes to
+  // the outbox now. A same-document swap (astro:before-preparation) keeps its run, and the next page.
+  const leave = (gone: boolean): void => {
     if (changes.size === 0) return;
     now();
     // A run waiting out the server's gap carries on after the page goes: until it sends, the page
     // opened next shows these edits from storage rather than the old values.
-    if (saver) saver.keepWaiting(context);
-    else void import("./managePageSave").then((module) => module.keepWaiting(context));
+    if (saver) {
+      if (gone) saver.keepHeld(context);
+      saver.keepWaiting(context);
+    } else
+      void import("./managePageSave").then((module) => {
+        if (gone) module.keepHeld(context);
+        module.keepWaiting(context);
+      });
   };
   document.addEventListener(
     "visibilitychange",
     () => {
-      if (document.visibilityState === "hidden") leave();
+      if (document.visibilityState === "hidden") leave(true);
     },
     { signal: off.signal },
   );
-  window.addEventListener("pagehide", leave, { signal: off.signal });
-  document.addEventListener("astro:before-preparation", leave, { signal: off.signal });
+  window.addEventListener("pagehide", () => leave(true), { signal: off.signal });
+  document.addEventListener("astro:before-preparation", () => leave(false), { signal: off.signal });
   document.addEventListener("astro:after-swap", () => off.abort(), { signal: off.signal });
   // A page left in the server's gap whose run then failed: this page takes its changes, says so in
   // its toast with Retry, and sends them with Retry or its next change (adopt).

@@ -210,7 +210,7 @@ describe("doctor: offline", () => {
     });
     expect(check(report, "key.ANTHROPIC_API_KEY")).toMatchObject({ status: "ok", summary: "set" });
     expect(check(report, "key.TYPESAFE_API_KEY").status).toBe("warn");
-    expect(check(report, "key.TYPESAFE_API_KEY").hint).toContain("unverified");
+    expect(check(report, "key.TYPESAFE_API_KEY").hint).toContain("routed models");
     for (const value of Object.values(SECRETS)) expect(stdout).not.toContain(value);
   });
 

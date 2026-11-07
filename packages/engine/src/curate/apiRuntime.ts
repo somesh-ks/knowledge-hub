@@ -21,7 +21,7 @@ import { createJevClient } from "../judge/jevClient.js";
 import { LlmJudge } from "../judge/llmJudge.js";
 import { TopicJudge } from "../judge/topicJudge.js";
 import type { Judge, JudgeFailure } from "../judge/types.js";
-import { withModelFallback } from "../llm/jevFallback.js";
+import { routedJev, withModelFallback } from "../llm/jevFallback.js";
 import { resolveFamilies } from "../llm/modelResolver.js";
 import { createModelRouter, type ModelRouterOptions } from "../llm/modelRouter.js";
 import { meterJev, type RequestMeter } from "../llm/requestMeter.js";
@@ -81,7 +81,7 @@ export interface ApiRuntime {
  *   judge     Jev when TYPESAFE_API_KEY is set, the routed Haiku or Flash-Lite judge for items Jev
  *             cannot answer; otherwise the routed judge alone, with a warning.
  *   writer    the story_writer chain (Sonnet, then Gemini Flash); rewrites use story_rewrite.
- *   grounder  Jev, then Gemini Flash or Haiku; none without a Jev key (the digest is unverified).
+ *   grounder  Jev, then Gemini Flash or Haiku; without a Jev key, the routed models alone.
  *   scraper   Firecrawl when FIRECRAWL_API_KEY is set.
  */
 export function createApiRuntime(
@@ -170,8 +170,14 @@ export function createApiRuntime(
     });
   } else {
     log.warn(
-      "TYPESAFE_API_KEY is not set: judging with the routed fallback judge (lower trust) and skipping the grounding check; the digest will be unverified",
+      "TYPESAFE_API_KEY is not set: judging with the routed fallback judge (lower trust) and grounding with the routed models from config/models.json (a story they cannot check leaves the digest unverified)",
     );
+    grounder = new JevGrounder({
+      client: routedJev(router, "grounding"),
+      concurrency: GROUNDING_SENTENCE_CONCURRENCY,
+      log,
+      secrets,
+    });
   }
 
   const scrape = env.FIRECRAWL_API_KEY
