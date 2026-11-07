@@ -139,7 +139,7 @@ export function describePart(part: Part): string {
   if (part.tokens.length) out.push(`  tokens: ${part.tokens.join(" ")}`);
   if (part.usage) {
     const note = part.usage.length > 240 ? `${part.usage.slice(0, 239).trimEnd()}…` : part.usage;
-    out.push(`  owner's note: ${note} (full: tokens/system.json)`);
+    out.push(`  owner's note: ${note} (full: packages/design-system/tokens/system.json)`);
   }
   return out.join("\n");
 }
@@ -150,7 +150,7 @@ export function answer(system: System, need: string): string {
   const tokens = findTokens(system, need).filter((hit) => hit.score >= 5);
   const out: string[] = [];
   if (parts.length === 0 && tokens.length === 0)
-    return `No part or token matches "${need}". Read tokens/llms.txt; if nothing fits, ask the owner before inventing a class.`;
+    return `No part or token matches "${need}". Read packages/design-system/tokens/llms.txt; if nothing fits, ask the owner before inventing a class.`;
   if (parts.length > 0) {
     out.push("PARTS (best first; the first is usually the one):");
     parts.forEach(({ part }, index) => {

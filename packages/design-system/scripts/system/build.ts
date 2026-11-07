@@ -62,7 +62,7 @@ function readStylesheets(): Stylesheet[] {
       .filter((name) => name.endsWith(".css") && name !== "tokens.css")
       .map((name) => ({ name, path: join(dir, name) })),
   )
-    .sort((a, b) => (a.name < b.name ? -1 : 1))
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
     .map(({ path }) => {
       const file = posix(relative(ROOT, path));
       const css = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
