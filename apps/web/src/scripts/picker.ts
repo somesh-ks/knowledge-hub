@@ -16,7 +16,7 @@
 
 import { flagNode } from "../design-system/flag";
 import { iconClass } from "../design-system/icon";
-import { ICON_PATHS, ICON_VIEW_BOX } from "../lib/icons";
+import { ICON_PATHS, ICON_VIEW_BOX } from "../design-system/icons";
 import { matchesQuery, pickerCount, pickerNoMatch } from "../lib/pickerFilter";
 import { FLOATING, roomFloor } from "../lib/roomFloor";
 import { type Break, beginBreakOnTab } from "../player/core/sampleBreak";

@@ -7,11 +7,12 @@
  * The sheet is a popover placed beside the select, not under `body`, so it stays inside an open
  * dialog (a modal dialog makes everything outside it inert).
  */
-import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
-import { pullToDismiss } from "../scripts/pullDismiss";
+
 import { buttonClass } from "./button";
 import { dialogActionsClass } from "./dialog";
 import { menuBodyClass, menuItemClass, menuListClass } from "./menu";
+import { pullToDismiss } from "./pullDismiss";
+import { escapeHtml, sheetHeadHtml } from "./sheetHead";
 import { mountWheel, type Wheel, wheelFrameClass, wheelHtml, wheelListClass } from "./wheel";
 
 let uid = 0;

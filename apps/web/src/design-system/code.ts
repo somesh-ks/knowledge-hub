@@ -5,8 +5,9 @@
  * its classes are written; Code.astro renders from it, codeSnippetHtml builds it for a script, and
  * the rules are in styles/code.css. The text wraps, so a long line never scrolls sideways.
  */
-import { escapeHtml, iconHtml } from "../lib/sheetHead";
+
 import type { Guidance } from "./guidance";
+import { escapeHtml, iconHtml } from "./sheetHead";
 
 export const CODE: Guidance = {
   summary:

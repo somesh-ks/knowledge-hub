@@ -5,8 +5,9 @@
  * an earlier visit then go on the sender's clock. A story's link followed is recorded as an open.
  * A bundled module runs once per session, so the marks are applied on astro:page-load.
  */
+
+import { warmWhenIdle } from "../design-system/idle";
 import { parseVotes, pressedOf, VOTES_KEY } from "../lib/storyVotes";
-import { warmWhenIdle } from "./idle";
 
 let loading: Promise<typeof import("./storyVotes")> | null = null;
 const sender = (): Promise<typeof import("./storyVotes")> => {

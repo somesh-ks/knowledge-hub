@@ -3,15 +3,10 @@
  * (SheetHeader.astro, Icon.astro) and for the sheets a script builds, so a sheet a script builds
  * is the same sheet a page builds (the design-system audit, 2026-10-25).
  */
-import { type IconSize, iconClass } from "../design-system/icon";
-import { MENU_BACK } from "../design-system/menu";
-import {
-  sheetHeadClass,
-  sheetHeadingClass,
-  sheetSubtitleClass,
-  sheetTitleClass,
-} from "../design-system/sheet";
+import { type IconSize, iconClass } from "./icon";
 import { ICON_BOLD_PATHS, ICON_PATHS, ICON_VIEW_BOX, type IconName } from "./icons";
+import { MENU_BACK } from "./menu";
+import { sheetHeadClass, sheetHeadingClass, sheetSubtitleClass, sheetTitleClass } from "./sheet";
 
 export const escapeHtml = (text: string): string =>
   text

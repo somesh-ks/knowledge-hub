@@ -3,7 +3,17 @@
  * fetched this way, never on the press itself, so a first press does not wait on a download (D47).
  */
 
-import { isOnline } from "../lib/connectivity";
+let online: () => boolean = () => typeof navigator === "undefined" || navigator.onLine !== false;
+
+/**
+ * Tells warmWhenIdle which connection state to believe. The app sets its confirmed state
+ * (lib/connectivity.ts, D330) once, from scripts/app.ts; the system does not import app code, and
+ * until it is set the browser's own flag stands in.
+ */
+export function setOnlineProbe(probe: () => boolean): void {
+  online = probe;
+}
+
 export function whenIdle(work: () => void, timeout = 4_000): void {
   if (typeof requestIdleCallback === "function") requestIdleCallback(work, { timeout });
   else setTimeout(work, 1_500);
@@ -16,6 +26,6 @@ export function whenIdle(work: () => void, timeout = 4_000): void {
  */
 export function warmWhenIdle(load: () => Promise<unknown>): void {
   whenIdle(() => {
-    if (isOnline()) void load().catch(() => undefined);
+    if (online()) void load().catch(() => undefined);
   });
 }

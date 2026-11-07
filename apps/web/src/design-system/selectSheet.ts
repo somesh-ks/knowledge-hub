@@ -11,8 +11,8 @@
  * sheet's code was about 20 KB of every page's first load). The browser's list is stopped here at
  * once, before anything is fetched, so it never shows while the sheet's code is on its way.
  */
-import { warmWhenIdle } from "../scripts/idle";
-import { installSheetTapGuard } from "../scripts/sheetTap";
+import { warmWhenIdle } from "./idle";
+import { installSheetTapGuard } from "./sheetTap";
 
 type View = typeof import("./selectSheetView");
 

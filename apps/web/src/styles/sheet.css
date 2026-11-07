@@ -83,7 +83,7 @@ dialog.sheet-side[data-started]:not([open])::backdrop {
 
 /* Pulled down on a phone, the full-screen sheet rounds its top corners with the mood's sheet radius
    as it leaves the screen's top, reaching the whole radius as the finger passes it (owner,
-   2026-11-04). scripts/pullDismiss.ts sets --sheet-pull to the pull and keeps it through the exit;
+   2026-11-04). design-system/pullDismiss.ts sets --sheet-pull to the pull and keeps it through the exit;
    from 40rem the panel's near corners are round already. */
 @media (width < 40rem) {
   dialog.sheet-side {

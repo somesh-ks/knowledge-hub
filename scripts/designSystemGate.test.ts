@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
   ALLOWLISTS,
   allowlistAdditions,
+  boundaryProblems,
   checkDesignSystemPr,
   listEntries,
+  systemSources,
 } from "./designSystemGate.mjs";
 
 // Without the gate a feature branch edits a shared component on the side, and the owner finds out
@@ -156,5 +158,32 @@ describe("design-system gate", () => {
         expect(listEntries(text, list)?.length, `${file} has no ${list}`).toBeGreaterThan(0);
       }
     }
+  });
+
+  // A system file that imports app code (lib/, scripts/, components/) cannot be lifted into its own
+  // package; ten such back-imports had grown unseen before this check.
+  it("fails a design-system file that imports app code, and lets it import its stylesheets and tokens", () => {
+    const at = "apps/web/src/design-system/Sheet.astro";
+    const text = [
+      'import Header from "./SheetHeader.astro";',
+      'import { MENU_BACK } from "./menu";',
+      'import "../styles/sheet.css";',
+      'import raw from "../../../../tokens/system.json";',
+      'import { escapeHtml } from "../lib/sheetHead";',
+      'import { warm } from "../scripts/idle";',
+      'const view = () => import("../components/SheetHeader.astro");',
+    ].join("\n");
+    expect(boundaryProblems([{ file: at, text }])).toEqual([
+      `${at}: ../lib/sheetHead`,
+      `${at}: ../scripts/idle`,
+      `${at}: ../components/SheetHeader.astro`,
+    ]);
+  });
+
+  it("finds the system's files, so the boundary check cannot pass over an empty folder", () => {
+    const root = join(import.meta.dirname, "..");
+    const sources = systemSources(root);
+    expect(sources.length).toBeGreaterThan(20);
+    expect(boundaryProblems(sources)).toEqual([]);
   });
 });

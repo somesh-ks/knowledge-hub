@@ -63,10 +63,10 @@ const SHARED_RULES = [
     ],
   },
   {
-    pattern: /^apps\/web\/src\/lib\/(?:sheetHead|icons)\.ts$/,
+    pattern: /^apps\/web\/src\/design-system\/(?:sheetHead|icons)\.ts$/,
     risk: "MEDIUM",
     surface: "Shared HTML Templates & Glyphs (sheet headers, menu items, action rows)",
-    checks: ["pnpm exec vitest run apps/web/src/lib/sheetHead.test.ts"],
+    checks: ["pnpm exec vitest run apps/web/src/design-system/sheetHead.test.ts"],
   },
   {
     pattern: /^docs\//,

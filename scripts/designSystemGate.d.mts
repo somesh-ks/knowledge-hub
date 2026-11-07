@@ -17,3 +17,7 @@ export declare function checkDesignSystemPr(input: {
   /** What the pull request adds to the allowlists, as "LIST: entry". */
   added?: string[];
 }): string[];
+/** Relative imports in design-system/ that leave it for app code, as "file: specifier". */
+export declare function boundaryProblems(sources: { file: string; text: string }[]): string[];
+/** Every source file under design-system/ (read from `root`), as boundaryProblems takes them. */
+export declare function systemSources(root: string): { file: string; text: string }[];

@@ -4,6 +4,7 @@
  * cue is a quiet no-op, which is the right behavior: no sound is ever required.
  */
 import type { SoundEngine } from "@singularity/sound";
+import { takeQuietClose } from "../../design-system/gestureQuiet";
 import {
   createHaptics,
   detectHapticSupport,
@@ -12,7 +13,6 @@ import {
 } from "../../design-system/haptics";
 import type { PlayerStore } from "../core/playerTypes";
 import type { PreferencesStore } from "../core/preferences";
-import { takeQuietClose } from "./gestureQuiet";
 import { type Cue, cueForPlayerEvent, playCue } from "./soundMap";
 
 let engine: SoundEngine | null = null;
