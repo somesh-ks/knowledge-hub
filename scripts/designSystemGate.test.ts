@@ -194,11 +194,22 @@ describe("design-system gate", () => {
       'import { escapeHtml } from "../../../apps/web/src/lib/sheetHead";',
       'import { warm } from "../../../apps/web/src/scripts/idle";',
       'const view = () => import("../../../apps/web/src/components/SheetHeader.astro");',
+      'import type { HTMLAttributes } from "astro/types";',
+      'import { SUPPORTED_TIMEZONES } from "@singularity/core/time";',
+      'import { loadDigest } from "@singularity/engine";',
     ].join("\n");
     expect(boundaryProblems([{ file: at, text }])).toEqual([
       `${at}: ../../../apps/web/src/lib/sheetHead`,
       `${at}: ../../../apps/web/src/scripts/idle`,
       `${at}: ../../../apps/web/src/components/SheetHeader.astro`,
+      `${at}: @singularity/engine`,
+    ]);
+    // The generators go with the package too (step 6 filters it into its own repository).
+    const script = "packages/design-system/scripts/buildTokens.ts";
+    const imports =
+      'import { readFileSync } from "node:fs";\nimport { a } from "../../../scripts/colorMath.js";';
+    expect(boundaryProblems([{ file: script, text: imports }])).toEqual([
+      `${script}: ../../../scripts/colorMath.js`,
     ]);
   });
 
@@ -221,6 +232,7 @@ describe("design-system gate", () => {
     const root = join(import.meta.dirname, "..");
     const sources = systemSources(root);
     expect(sources.length).toBeGreaterThan(20);
+    expect(sources.some(({ file }) => file.includes("/scripts/system/"))).toBe(true);
     expect(boundaryProblems(sources)).toEqual([]);
   });
 });

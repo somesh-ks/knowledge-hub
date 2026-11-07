@@ -101,38 +101,46 @@ const CALL_SITES = ["apps/web/src/", "apps/web/e2e/", "apps/admin/src/"];
 export const SYSTEM_NAMES =
   /\bdesign-system\/|--ghost-(?:accent-)?(?:hover|pressed)\b|\btabs-bar\b|\bButton\b|buttonClass|<(?:Lazy)?Icon(?![\w.])|<Badge(?![\w.])|<Flag(?![\w.])|<Code(?![\w.])|codeSnippetHtml|wireCodeCopy|styles\/code\.css|glowFavorite|--radius-round\b|styles\/glow\.css|flagNode|flagParts|showText|shownText|FLAG_REGIONS|flagSymbolId|styles\/flag\.css|<RowExit(?![\w.])|rowExitClass|<Avatar(?![\w.])|avatarMarkup|avatarClass|PlayPauseIcons|badgeClass|badge-label|iconClass|iconHtml|icon-glyph|text-(?:display|title|heading)\b|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|selectSheet|data-select-sheet|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select|sheet|drawer)\.css|data-sheet=|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<LibraryItemMenu(?![\w.])|sheetHeadHtml|<Ripple(?![\w.])|installRipple|data-ripple|<Banner(?![\w.])|bannerClass|bannerText|player-notice|<Dialog(?:Actions)?(?![\w.])|dialogClass|dialogActionsClass|dialogBodyClass|DIALOG_SELECTOR|confirm-(?:dialog|form|actions)|<DialogTitle|dialogTitleClass|<Sheet(?![\w.])|sheet(?:Body|Head|Title)?Class|(?:CREATE_|PANEL_)?SHEET_SELECTOR|create-sheet(?:-head|-body)?\b|drawer(?:Scrim|Viewport|Popup|Panel|Head)Class|sheet-(?:scrim|viewport|popup|panel)/;
 
-const SYSTEM_DIR = "packages/design-system/src/";
 const PACKAGE_DIR = "packages/design-system/";
 const SOURCE_FILE = /\.(?:ts|tsx|astro|mjs|js)$/;
-const RELATIVE_IMPORT = /(?:from|import)\s*\(?\s*["'](\.{1,2}\/[^"']*)["']/g;
+const IMPORT = /(?:from|import)\s*\(?\s*["']([^"'\s]+)["']/g;
+/** The workspace packages the system may name: the one it depends on, and itself. */
+const WORKSPACE_ALLOWED = ["@singularity/core", "@singularity/design-system"];
 
 /**
- * The design system must not import app code, so it can leave for a repository of its own (D382). A
- * relative import in its components (src/) may reach only its own package: its stylesheets, fonts,
- * flags and tokens. `sources` is each file's repo-relative path and text; the result names each
+ * The design system must not import app code, so it can leave for a repository of its own (D382,
+ * step 6 filters the package into one). Every file in the package (src/ and scripts/) may import
+ * only what stays inside it by a relative path, or a package by name: node:, a third-party package,
+ * or @singularity/core. `sources` is each file's repo-relative path and text; the result names each
  * import that reaches out, as "file: specifier".
  */
 export function boundaryProblems(sources) {
   return sources.flatMap(({ file, text }) =>
-    [...text.matchAll(RELATIVE_IMPORT)].flatMap(([, specifier]) => {
-      const target = posix.join(posix.dirname(file), specifier.replace(/[?#].*$/, ""));
-      return target.startsWith(PACKAGE_DIR) ? [] : [`${file}: ${specifier}`];
+    [...text.matchAll(IMPORT)].flatMap(([, specifier]) => {
+      if (specifier.startsWith(".")) {
+        const target = posix.join(posix.dirname(file), specifier.replace(/[?#].*$/, ""));
+        return target.startsWith(PACKAGE_DIR) ? [] : [`${file}: ${specifier}`];
+      }
+      if (specifier.startsWith("/")) return [`${file}: ${specifier}`];
+      const workspace = /^@singularity\/[^/]+/.exec(specifier)?.[0];
+      return workspace && !WORKSPACE_ALLOWED.includes(workspace) ? [`${file}: ${specifier}`] : [];
     }),
   );
 }
 
-/** Every source file in the package's src/, as boundaryProblems reads them. */
+/** Every source file in the package (its dependencies left out), as boundaryProblems reads them. */
 export function systemSources(root) {
   const found = [];
   const walk = (dir) => {
     for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
       const path = posix.join(dir, entry.name);
-      if (entry.isDirectory()) walk(path);
-      else if (SOURCE_FILE.test(entry.name))
+      if (entry.isDirectory()) {
+        if (entry.name !== "node_modules") walk(path);
+      } else if (SOURCE_FILE.test(entry.name))
         found.push({ file: path, text: readFileSync(join(root, path), "utf8") });
     }
   };
-  walk(SYSTEM_DIR.slice(0, -1));
+  walk(PACKAGE_DIR.slice(0, -1));
   return found;
 }
 

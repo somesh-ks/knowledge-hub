@@ -20,7 +20,7 @@ import {
   oklchToRgb,
   parseOklch,
   toHex,
-} from "../../../scripts/colorMath.js";
+} from "./colorMath.js";
 import { isRecipe, recipeColors } from "./styleRecipe.js";
 
 export type Tier = "primitive" | "semantic" | "component";

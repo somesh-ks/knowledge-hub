@@ -14,7 +14,8 @@ const LAYOUT = new Set([
   "packages/design-system/tokens/system.json",
   "packages/design-system/scripts/buildTokens.ts",
   "apps/web/src/styles/player.css",
-  "scripts/colorMath.ts",
+  "scripts/buildIcons.ts",
+  "packages/design-system/scripts/colorMath.ts",
 ]);
 const exists = (path: string) => LAYOUT.has(path);
 
@@ -48,13 +49,18 @@ describe("dsMigrate", () => {
     expect(rewriteSource(font, movedPath("apps/web/src/styles/fonts.css"), exists)).toBe(
       'src: url("../fonts/pirata-one-latin-400-normal.woff2") format("woff2");',
     );
-    const script = 'import { a } from "./colorMath.js";\nimport { b } from "./buildTokens.js";';
+    const script = 'import { a } from "./buildIcons.js";\nimport { b } from "./buildTokens.js";';
     expect(rewriteSource(script, movedPath("scripts/styleRecipe.ts"), exists)).toBe(
-      'import { a } from "../../../scripts/colorMath.js";\nimport { b } from "./buildTokens.js";',
+      'import { a } from "../../../scripts/buildIcons.js";\nimport { b } from "./buildTokens.js";',
     );
     const icon = 'import "../styles/icon.css";';
     expect(rewriteSource(icon, movedPath("apps/web/src/design-system/Icon.astro"), exists)).toBe(
       icon,
+    );
+    // A file moved by an earlier run follows a module the map moves later (colorMath joined in step 4b).
+    const earlier = 'import { a } from "../../../scripts/colorMath.js";';
+    expect(rewriteSource(earlier, "packages/design-system/scripts/buildTokens.ts", exists)).toBe(
+      'import { a } from "./colorMath.js";',
     );
   });
 
@@ -62,7 +68,7 @@ describe("dsMigrate", () => {
     const page = 'import Button from "../design-system/Button.astro";';
     const once = rewriteSource(page, "apps/web/src/components/Card.astro", exists);
     expect(rewriteSource(once, "apps/web/src/components/Card.astro", exists)).toBe(once);
-    const script = 'import { a } from "./colorMath.js";';
+    const script = 'import { a } from "./buildIcons.js";';
     const file = movedPath("scripts/buildTokens.ts");
     const moved = rewriteSource(script, file, exists);
     expect(rewriteSource(moved, file, exists)).toBe(moved);

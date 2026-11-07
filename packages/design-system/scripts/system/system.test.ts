@@ -10,7 +10,6 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { usageComment } from "../../../../apps/web/src/lib/designCatalogue.js";
 import {
   buildSystem,
   classTokens,
@@ -22,6 +21,7 @@ import {
   sourceFiles,
 } from "./build.js";
 import { findParts, findTokens } from "./query.js";
+import { usageComment } from "./usage.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const system = buildSystem();

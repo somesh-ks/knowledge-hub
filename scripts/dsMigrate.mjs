@@ -57,6 +57,10 @@ export const PATH_MAP = {
   "scripts/styleRecipe.test.ts": `${PACKAGE}scripts/styleRecipe.test.ts`,
   "scripts/buildTokens.ts": `${PACKAGE}scripts/buildTokens.ts`,
   "scripts/buildTokens.test.ts": `${PACKAGE}scripts/buildTokens.test.ts`,
+  // The colour maths and spring curve the token build runs on: the package imports nothing outside it.
+  "scripts/colorMath.ts": `${PACKAGE}scripts/colorMath.ts`,
+  "scripts/colorMath.test.ts": `${PACKAGE}scripts/colorMath.test.ts`,
+  "scripts/springCurve.ts": `${PACKAGE}scripts/springCurve.ts`,
 };
 
 /** Where a repo path lives after the move; a path the move does not name keeps its place. */
@@ -128,10 +132,15 @@ export function rewriteSource(text, file, exists, { packageImports = true } = {}
     const [path, query = ""] = specifier.split(/(?=[?#])/);
     // Already right: it resolves where the file stands now.
     const now = resolveFile(posix.join(posix.dirname(file), path), exists);
-    // Where the import pointed before the move, and where that file is now.
+    // A file that moved in an earlier run may name, from where it stands, a file that moves now.
+    const here = posix.join(posix.dirname(file), path);
+    const movedHere = here.startsWith("..")
+      ? undefined
+      : candidates(here).find((path) => movedPath(path) !== path && exists(movedPath(path)));
+    // Otherwise, where the import pointed before the move, and where that file is now.
     const old = posix.join(posix.dirname(was), path);
-    if (old.startsWith("..")) return whole;
-    const named = candidates(old).find((candidate) => exists(movedPath(candidate)));
+    if (!movedHere && old.startsWith("..")) return whole;
+    const named = movedHere ?? candidates(old).find((candidate) => exists(movedPath(candidate)));
     if (!named) return whole;
     const target = movedPath(named);
     // A target that stayed put and an import that resolves: nothing moved under it.
@@ -173,7 +182,7 @@ function run({ root, dry }) {
   const exists = (path) => present.has(path);
   let changed = 0;
   for (const file of files.filter((path) => SOURCE.test(path) && !SKIP.test(path))) {
-    const full = resolve(root, dry ? originalPath(file) : file);
+    const full = resolve(root, dry && !existsSync(resolve(root, file)) ? originalPath(file) : file);
     if (!existsSync(full)) continue;
     const text = readFileSync(full, "utf8");
     const packageImports = /^(?:apps|packages)\/|^scripts\//.test(file);

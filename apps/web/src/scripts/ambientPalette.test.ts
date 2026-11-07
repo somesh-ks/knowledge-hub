@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { oklchStringToRgb, toHex } from "@singularity/design-system/scripts/colorMath";
 import tokens from "@singularity/design-system/tokens/tokens.json" with { type: "json" };
 import { describe, expect, it } from "vitest";
 import { clampToGamut, contrastRatio, oklchToHex } from "../../../../packages/cover/src/color";
-import { oklchStringToRgb, toHex } from "../../../../scripts/colorMath";
 import { backingSize, blendTint, MAX_SIDE, paletteUniforms, shouldAnimate } from "./ambientPalette";
 import { DARK, LIGHT, lightColors, tint } from "./ambientTint";
 

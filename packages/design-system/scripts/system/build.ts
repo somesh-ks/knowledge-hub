@@ -6,7 +6,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { usageComment } from "../../../../apps/web/src/lib/designCatalogue.js";
 import {
   aliasTarget,
   cssName,
@@ -18,6 +17,7 @@ import {
 } from "../buildTokens.js";
 import { PARTS } from "./parts.js";
 import type { BespokeControl, Part, PartSource, System, SystemToken } from "./types.js";
+import { usageComment } from "./usage.js";
 
 /** The repository, whose apps draw the system, and the package that holds it. */
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
