@@ -668,16 +668,24 @@ main.library [data-library][data-view="list"] .library-grid {
   opacity: 1;
 }
 
-/* The ring takes the tile's shape, as a DS row's does (.row-action, primitives.css): on the link's
-   own box it ran 2px off the cover, round the cover's corner (owner, 2026-11-07: no gap on the left). */
+/* The ring sits as far from the cover at its side as above and below it, on a row-shaped tile of its
+   own: on the link's own box it ran 2px off the cover, round the cover's corner (owner, 2026-11-07:
+   no gap on the left). Not on the press tile (::after), which runs to the screen's edge on a phone
+   and would keep its fill after a tap. */
 [data-library][data-view="list"] .card-link:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
-[data-library][data-view="list"] .card-link:focus-visible::after {
-  opacity: 1;
+[data-library][data-view="list"] .card-link:focus-visible::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--space-1);
+  inset-inline: calc((var(--list-row-inset) - var(--space-1)) * -1);
+  border-radius: var(--row-radius);
   outline: var(--stroke-ring) solid var(--color-focus-ring);
   outline-offset: calc(var(--stroke-ring) * -1);
+  pointer-events: none;
 }
 
 /* The whole title, over one line or two: no clamp. */
