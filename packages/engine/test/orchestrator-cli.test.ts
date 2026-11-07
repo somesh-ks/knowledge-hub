@@ -485,6 +485,36 @@ describe("the run state is in Postgres when its switch is on (D381)", () => {
     expect(ran).toEqual([]);
   });
 
+  // The bug it prevents: a job that died before its gate (install, checkout) records `failed` in
+  // git only; the next pull then writes the old last-run row over it and health never sees the failure.
+  it("a failure record pulls when its job has not, and goes on when the store is down", async () => {
+    const ran: string[] = [];
+    const rows = [{ path: "state/last-run.json", content: '{"stored":true}\n', version: 1 }];
+    expect(
+      await runCli(
+        ["run", "--record-failed"],
+        ioFor(async () => ({ query: async () => rows }), ran),
+      ),
+    ).toBe(0);
+    expect(await readFile(join(dir, "state/last-run.json"), "utf8")).toBe('{"stored":true}\n');
+
+    // A pull record from the gate is left alone: later rows must not replace uncommitted state.
+    const newer = [{ path: "state/last-run.json", content: '{"newer":true}\n', version: 2 }];
+    expect(
+      await runCli(
+        ["run", "--record-failed"],
+        ioFor(async () => ({ query: async () => newer }), ran),
+      ),
+    ).toBe(0);
+    expect(await readFile(join(dir, "state/last-run.json"), "utf8")).toBe('{"stored":true}\n');
+
+    await rm(join(dir, ".cache/state-pulled.json"), { force: true });
+    const down = ioFor(async () => {
+      throw new Error("connect ECONNREFUSED");
+    }, ran);
+    expect(await runCli(["run", "--record-failed"], down)).toBe(0);
+  });
+
   it("leaves state/ alone with the switch off", async () => {
     const ran: string[] = [];
     const io = { ...ioFor(async () => ({ query: async () => [] }), ran), env: {} };

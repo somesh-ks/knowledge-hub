@@ -23,7 +23,7 @@ import {
   stateStoreUrl,
 } from "./store/configDocs.js";
 import { missingConfigFiles, REQUIRED_CONFIG_DOCUMENTS } from "./store/configExamples.js";
-import { pullState, stateScopeFor } from "./store/stateDocs.js";
+import { hasPullRecord, pullState, stateScopeFor } from "./store/stateDocs.js";
 
 /** Where the CLI prints and what it reads, so tests drive it without touching the process. */
 export interface CliIo {
@@ -285,17 +285,25 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
   // The run state lives in Postgres when its switch is on (D381): copied over state/ before the
   // command reads it, sent back by the commit (git/commit.ts). A store that cannot be read stops the
   // command, since a push from stale files would write them over newer rows; `health` only reports.
-  if (readsStateAtStart(spec.name, parsed.rest)) {
+  // The failure record is written by a job that may have died before its gate pulled. Without a pull
+  // it would be saved to git only, and the next pull would write the old last-run over it, so it
+  // pulls when nothing has; best effort, since the store may be what failed.
+  const recordsFailure = spec.name === "run" && parsed.rest.includes("--record-failed");
+  const bestEffort = spec.name === "health" || recordsFailure;
+  if (
+    readsStateAtStart(spec.name, parsed.rest) ||
+    (recordsFailure && !(await hasPullRecord(root)))
+  ) {
     const stateUrl = stateStoreUrl(env);
     // A switch that is on with no URL (the audio job's secret unset or misspelled) would otherwise
     // skip the pull and save quietly, and the next job would write older rows over its ledger.
     if (stateUrl === null && env.SINGULARITY_STATE_STORE === "postgres") {
       const message = "the state store is switched on but has no database URL";
-      if (spec.name !== "health") {
+      if (!bestEffort) {
         err(`singularity: ${message} (the audio job reads the AUDIO_DATABASE_URL secret).\n`);
         return 1;
       }
-      log.warn(`${message}, health reads the files here`);
+      log.warn(`${message}, this command uses the files here`);
     }
     if (stateUrl !== null) {
       try {
@@ -304,11 +312,11 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
         log.info(`state store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
       } catch (error) {
         const reason = redact(firstLine(String(error)), secrets);
-        if (spec.name !== "health") {
+        if (!bestEffort) {
           err(`singularity: the state store cannot be read (${reason}).\n`);
           return 1;
         }
-        log.warn(`state store unreachable, health reads the files here: ${reason}`);
+        log.warn(`state store unreachable, this command uses the files here: ${reason}`);
       }
     }
   }

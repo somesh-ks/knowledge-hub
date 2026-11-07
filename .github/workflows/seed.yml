@@ -8,14 +8,18 @@ name: seed
 # 11.1) for a store seeded earlier. The engine refuses it while SINGULARITY_CONFIG_STORE is on, since
 # the app's edits then live only in the database; this workflow has no way to force it.
 #
-# It also adds a row for each state/*.json on main that has none (D381, runbook 14). That never
-# replaces a row, so it is safe to run again; it is the step just before switching the run state on.
+# With `state` on it also adds a row for each state/*.json on main that has none (D381, runbook
+# 14.1). That never replaces a row, so it is safe to run again.
 
 on:
   workflow_dispatch:
     inputs:
       replace:
         description: "Rewrite rows that differ from the committed files (before switch-on only)"
+        type: boolean
+        default: false
+      state:
+        description: "Also seed the run state (D381, runbook 14.1): one row per state/*.json on main"
         type: boolean
         default: false
       dry_run:
@@ -61,10 +65,12 @@ jobs:
           [ "$DRY" = "true" ] && seed_args+=(--dry-run)
           npm run --silent singularity -- config seed "${seed_args[@]}"
 
-      # The run state (D381): one row per state/*.json on main. Run it right before setting the
-      # SINGULARITY_STATE_STORE variable, with no run under way: a run that commits between the two
-      # leaves the rows one run behind its files, and the first pull would write them over.
+      # The run state (D381): one row per state/*.json on main. Run it just AFTER setting the
+      # SINGULARITY_STATE_STORE variable, with no run under way. Before it, a run that commits between
+      # the seed and the switch leaves the rows one run behind its files and the first pull writes
+      # them over, silently; after it, a run that overlaps the seed ends red on a conflict instead.
       - name: Seed the run state
+        if: inputs.state
         shell: bash
         env:
           DRY: ${{ inputs.dry_run }}

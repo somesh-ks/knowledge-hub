@@ -465,11 +465,11 @@ To rotate: `alter role audio_state password '<new>'`, then update the secret. To
 
 ### 14.1 Turn the run state on (D381, once)
 
-Do this only after section 14 is done and its pull request is merged, and not near the daily run (check the Actions tab: nothing running or queued). While `state/` is still in git, git and the rows must be equal at the moment of the switch.
+Do this only after section 14 is done and its pull request is merged, and not near the daily run: check the Actions tab first, with nothing running or queued. Order matters. Seed after the switch, not before: rows seeded before it can fall one run behind git if a run commits in between, and the first pull then writes them over the newer files without any error. After the switch, a job with no row simply keeps its files and saves them, so the worst overlap is a red run.
 
-1. Actions → seed → Run workflow with `dry_run` on. Its last step, "Seed the run state", lists the files it would write.
-2. Run it again with `dry_run` off. The step now writes one row per `state/*.json` on `main` and never replaces a row.
-3. Settings → Secrets and variables → Actions → Variables → New repository variable: `SINGULARITY_STATE_STORE` = `postgres`. Do this straight after step 2.
-4. Check on the next run (a `dry_run` of the daily is enough): the Gate step's log has a `state store:` line, and the Commit step does not end in `push_failed`. The audio job's log shows the same line.
+1. Settings → Secrets and variables → Actions → Variables → New repository variable: `SINGULARITY_STATE_STORE` = `postgres`.
+2. Actions → seed → Run workflow with `state` on and `dry_run` on. The step "Seed the run state" lists the files it would write.
+3. Run it again with `dry_run` off. It writes one row per `state/*.json` on `main` that has none, and never replaces a row.
+4. Check it worked: start a `dry_run` daily (Actions → run). The Gate log has a `state store:` line and the Commit step is green. Then in the Neon SQL editor, as the owner role: `select path, version, updated_at from state_documents order by updated_at desc limit 5`. The newest `state/costs-...json` row has the time of that dry run.
 
-To turn it off: delete the variable. The jobs go back to the files in git, which still carry every run (step 5 of D300 stops that, later). Rows then fall behind; seed never replaces them, so before switching on again clear the table (`delete from state_documents` as the owner role) and repeat steps 1 to 3.
+To turn it off: delete the variable. The jobs go back to the files in git, which still carry every run (D300 step 5 stops that, later). The rows then fall behind, and switching on again without clearing them would write old `seen.json` and `judgments.json` over newer files. So before switching on again, clear the table as the owner role (`delete from state_documents`) and repeat steps 1 to 3.
