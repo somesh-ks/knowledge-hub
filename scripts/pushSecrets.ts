@@ -21,6 +21,9 @@ const GITHUB_SECRETS = [
   "VERCEL_TOKEN",
   "GEMINI_API_KEY",
   "DATABASE_URL",
+  // The audio job's own Postgres login for the cost ledger (D381, runbook 14). GitHub only: the
+  // site never needs it, and the shared DATABASE_URL must not reach the audio job (SEC-03).
+  "AUDIO_DATABASE_URL",
   // The daily health check (D360): Neon's compute hours, and the site's GitHub token's end date.
   "NEON_API_KEY",
   "GITHUB_SINGULARITY_TOKEN",

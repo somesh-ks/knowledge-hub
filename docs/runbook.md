@@ -457,7 +457,7 @@ create policy audio_state_rows on state_documents to audio_state
 ```
 
 2. Make the connection string for that login: the owner's string with the user `audio_state` and the new password in place of the owner's (Neon: Connect, choose the role). Use the same pooled host as `DATABASE_URL`.
-3. Settings → Secrets and variables → Actions → New repository secret: `AUDIO_DATABASE_URL` = that string. Do not put it in `.env` or Vercel.
+3. Put it in `.env` as `AUDIO_DATABASE_URL` and run `npm run secrets:push -- --only github` (or add it by hand: Settings → Secrets and variables → Actions → New repository secret). GitHub only, never Vercel: the site does not use it and the shared `DATABASE_URL` stays out of the audio job.
 4. Merge the pull request (it edits `audio.yml`, `run.yml` and `podcast.yml`, which only you can merge). Nothing changes until the repository variable `SINGULARITY_STATE_STORE` is `postgres`, which a later change sets once every job saves its state.
 5. Check the login with the secret's own string, since a wrong password or host would stop the audio job: from a terminal, `psql '<the AUDIO_DATABASE_URL string>' -c 'select path from state_documents'`. It connects and lists only `state/costs-...` and `state/usage.json` rows, however many others exist.
 
