@@ -642,8 +642,11 @@ describe("a left page's held run", () => {
     await vi.advanceTimersByTimeAsync(0);
     changes.set("length", change({ op: "schedule.set", length_minutes: 3 }));
     keepHeld(left);
-    answer(new Response(JSON.stringify({ error: "too_soon", retry_after_s: 1 }), { status: 429 }));
-    await vi.advanceTimersByTimeAsync(GAP_MS * 3);
+    answer(new Response(JSON.stringify({ error: "too_soon", retry_after_s: 30 }), { status: 429 }));
+    // Nothing goes again before the wait the server asked for.
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(posted).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(GAP_MS);
     await run;
     expect(posted.slice(1).flat()).toEqual([
       { op: "schedule.set", hour: 9 },

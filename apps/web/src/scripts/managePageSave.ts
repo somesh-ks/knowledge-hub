@@ -811,8 +811,12 @@ export async function flush(context: SaveContext): Promise<void> {
       const overtook = overtaken;
       overtaken = false;
       // Newer edits went to the outbox while this one was out: one that did not land goes ahead of
-      // them, and the outbox sends them all in order once this run ends.
-      if (overtook && (answer.status === 429 || answer.status === 0) && keep(batch, true)) continue;
+      // them, and the outbox sends them all in order once this run ends, after the wait a 429 asks for.
+      if (overtook && (answer.status === 429 || answer.status === 0) && keep(batch, true)) {
+        if (answer.status === 429)
+          await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
+        continue;
+      }
       if (answer.status === 429 && waits < MAX_WAITS) {
         waits += 1;
         await new Promise((resolve) => setTimeout(resolve, answer.wait * 1000 + 250));
