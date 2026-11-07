@@ -8,6 +8,7 @@ import {
   checkDesignSystemPr,
   listEntries,
   SYSTEM_NAMES,
+  SYSTEM_PATHS,
   systemSources,
 } from "./designSystemGate.mjs";
 
@@ -62,6 +63,20 @@ describe("design-system gate", () => {
         namesSystem: () => true,
       }),
     ).toEqual([]);
+  });
+
+  // Mid-move, a branch that edits the old paths lands a change the move then loses or must redo.
+  it("freezes the system while the move to its package is open, and lets the move itself through", () => {
+    const files = ["apps/web/src/design-system/Button.astro", "pnpm-lock.yaml"];
+    const frozen = checkDesignSystemPr({
+      files: files.slice(0, 1),
+      labels: ["design-system"],
+      frozenBy: [760],
+    });
+    expect(frozen).toHaveLength(1);
+    expect(frozen[0]).toContain("#760");
+    expect(checkDesignSystemPr({ files: ["docs/x.md"], labels: [], frozenBy: [760] })).toEqual([]);
+    expect(checkDesignSystemPr({ files, labels: ["ds-migration"], frozenBy: [] })).toEqual([]);
   });
 
   it("holds a labelled pull request to app files that name the system, and to its own records", () => {
@@ -187,6 +202,21 @@ describe("design-system gate", () => {
       `${at}: ../components/SheetHeader.astro`,
       `${at}: ../styles/icon.css.ts`,
     ]);
+  });
+
+  // The workflow runs only on its path filter, so a system path missing there escaped the label
+  // rule and the freeze (flag.css, glow.css and the fonts were missing on 2026-11-07).
+  it("runs the workflow on every system path", () => {
+    const workflow = readFileSync(
+      join(import.meta.dirname, "../.github/workflows/design-system.yml"),
+      "utf8",
+    );
+    const filter = [...workflow.matchAll(/^ {6}- (\S+)$/gm)].map(([, glob]) => glob);
+    expect(filter).toEqual(
+      SYSTEM_PATHS.map((path) =>
+        path.endsWith("/") || path.endsWith("/flags") ? `${path}**` : path,
+      ),
+    );
   });
 
   it("finds the system's files, so the boundary check cannot pass over an empty folder", () => {
