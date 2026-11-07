@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import type { SqlClient } from "./configPaths.js";
@@ -11,6 +12,7 @@ import {
   STATE_SCHEMA_SQL,
   StateConflictError,
   seedState,
+  stateScopeFor,
 } from "./stateDocs.js";
 
 // An in-process Postgres takes a while to start when several store files start theirs at once.
@@ -220,5 +222,99 @@ describe("pullState and pushState", () => {
     };
     await expect(pullState(root, broken)).rejects.toThrow("network down");
     await expect(pushState(root, sql)).rejects.toThrow(/state pull/);
+  });
+});
+
+describe("the audio job's restricted login (D381)", () => {
+  /** The grants in the runbook are what the owner runs; the test runs the same text. */
+  async function runbookSql(): Promise<string> {
+    const runbook = await readFile(
+      fileURLToPath(new URL("../../../../docs/runbook.md", import.meta.url)),
+      "utf8",
+    );
+    const block = [...runbook.matchAll(/```sql\n([\s\S]*?)```/g)]
+      .map((match) => match[1] ?? "")
+      .find((sql) => sql.includes("audio_state"));
+    if (block === undefined) throw new Error("docs/runbook.md has no sql block for audio_state");
+    // The owner creates the table from this block, so it must be the table the engine writes.
+    expect(block).toContain(STATE_SCHEMA_SQL);
+    return block.replace("<password>", "test-password");
+  }
+
+  /** Two clients on one database: the owner seeds, `audio_state` is the login the audio job gets. */
+  async function ownerAndAudio(): Promise<{ owner: SqlClient; audio: SqlClient }> {
+    const db = new PGlite();
+    open.push(db);
+    await db.exec(await runbookSql());
+    const owner: SqlClient = {
+      query: async (text, params) =>
+        (await db.query<Record<string, unknown>>(text, params ?? [])).rows,
+    };
+    const audio: SqlClient = {
+      query: async (text, params) => {
+        await db.exec("set role audio_state");
+        try {
+          return (await db.query<Record<string, unknown>>(text, params ?? [])).rows;
+        } finally {
+          await db.exec("reset role");
+        }
+      },
+    };
+    return { owner, audio };
+  }
+
+  const COSTS = "state/costs-2026-11.json";
+
+  // The bug it prevents: the audio job runs a third-party voice API, so its login must not read or
+  // change the digest's seen list or judgments even if the engine had a bug that tried to.
+  it("lets the audio login read and write its own rows and no other", async () => {
+    const { owner, audio } = await ownerAndAudio();
+    await owner.query("insert into state_documents (path, content) values ($1, 'a'), ($2, 'b')", [
+      "state/seen.json",
+      COSTS,
+    ]);
+    expect((await audio.query("select path from state_documents")).map((r) => r.path)).toEqual([
+      COSTS,
+    ]);
+    await expect(
+      audio.query("insert into state_documents (path, content) values ('state/seen.json', 'x')"),
+    ).rejects.toThrow();
+    expect(
+      await audio.query(
+        "update state_documents set content = 'x' where path = 'state/seen.json' returning path",
+      ),
+    ).toEqual([]);
+    await expect(audio.query("delete from state_documents")).rejects.toThrow();
+    expect(
+      (await owner.query("select content from state_documents where path = 'state/seen.json'"))[0]
+        ?.content,
+    ).toBe("a");
+  });
+
+  // The bug it prevents: the pushes of other jobs' files from an audio checkout that holds the whole
+  // state/ directory (it is in git until step 5) would be refused by the login, failing the job.
+  it("pulls and pushes only the audio files, leaving the rest of state/ alone", async () => {
+    const { owner, audio } = await ownerAndAudio();
+    const scope = stateScopeFor("publish");
+    expect(scope?.(COSTS)).toBe(true);
+    expect(scope?.("state/usage.json")).toBe(true);
+    expect(scope?.("state/seen.json")).toBe(false);
+    expect(stateScopeFor("run")).toBeUndefined();
+
+    await owner.query("insert into state_documents (path, content) values ($1, $2)", [
+      COSTS,
+      '{"v":1}\n',
+    ]);
+    const root = await checkout({ "state/seen.json": "local\n" });
+    expect(await pullState(root, audio, scope)).toEqual([COSTS]);
+    await writeFile(join(root, COSTS), '{"v":2}\n');
+    await writeFile(join(root, "state/usage.json"), '{"u":1}\n');
+    expect(await pushState(root, audio, undefined, scope)).toEqual({
+      written: [COSTS, "state/usage.json"],
+      merged: [],
+    });
+    const rows = await owner.query("select path from state_documents order by path");
+    expect(rows.map((r) => r.path)).toEqual([COSTS, "state/usage.json"]);
+    expect(await text(root, "state/seen.json")).toBe("local\n");
   });
 });

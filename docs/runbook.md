@@ -433,3 +433,43 @@ Share makes a public listen link (`/s/<token>`). What a link does: [specs/sharin
 
 1. Owner setup: nothing. The routes need `DATABASE_URL` on Vercel Production (section 11, step 7), which production has; without it Share sends the page's own address, as before. The tables `share_links` and `share_budget` create themselves on the first Share; there is nothing to seed or migrate.
 2. Check: open a briefing whose audio has played once, More actions → Share, open the link in a private window and press Play.
+
+## 14. The audio login for the run state (D381, once)
+
+The audio job writes the cost ledger and the legacy count (`state/costs-*.json`, `state/usage.json`). It has no `DATABASE_URL` on purpose (SEC-03: it runs a third-party voice API), so it gets its own Postgres login that can see those two kinds of row and nothing else. Do this once, before the workflow change merges; the state switch stays off until a later change turns it on (step 4).
+
+1. In the Neon console open the SQL editor for the production database, as the owner role, and run the block below with `<password>` replaced by a long random password (not stored anywhere else). It creates the table if it is not there, the login, and a row policy that limits the login to the audio files. Run it once; a second run stops at "role already exists".
+
+```sql
+create table if not exists state_documents (
+  path text primary key,
+  content text not null,
+  version integer not null default 1,
+  updated_at timestamptz not null default now()
+);
+create role audio_state login password '<password>';
+grant usage on schema public to audio_state;
+grant select, insert, update on state_documents to audio_state;
+alter table state_documents enable row level security;
+create policy audio_state_rows on state_documents to audio_state
+  using (path ~ '^state/(costs-[0-9]{4}-[0-9]{2}|usage)\.json$')
+  with check (path ~ '^state/(costs-[0-9]{4}-[0-9]{2}|usage)\.json$');
+```
+
+2. Make the connection string for that login: the owner's string with the user `audio_state` and the new password in place of the owner's (Neon: Connect, choose the role). Use the same pooled host as `DATABASE_URL`.
+3. Put it in `.env` as `AUDIO_DATABASE_URL` and run `npm run secrets:push -- --only github` (or add it by hand: Settings → Secrets and variables → Actions → New repository secret). GitHub only, never Vercel: the site does not use it and the shared `DATABASE_URL` stays out of the audio job.
+4. Merge the pull request (it edits `audio.yml`, `run.yml` and `podcast.yml`, which only you can merge). Nothing changes until the repository variable `SINGULARITY_STATE_STORE` is `postgres`, which a later change sets once every job saves its state.
+5. Check the login with the secret's own string, since a wrong password or host would stop the audio job: from a terminal, `psql '<the AUDIO_DATABASE_URL string>' -c 'select path from state_documents'`. It connects and lists only `state/costs-...` and `state/usage.json` rows, however many others exist.
+
+To rotate: `alter role audio_state password '<new>'`, then update the secret. To remove: `drop owned by audio_state; drop role audio_state;` and delete the secret.
+
+### 14.1 Turn the run state on (D381, once)
+
+Do this only after section 14 is done and its pull request is merged, and not near the daily run: check the Actions tab first, with nothing running or queued. Order matters. Seed after the switch, not before: rows seeded before it can fall one run behind git if a run commits in between, and the first pull then writes them over the newer files without any error. After the switch, a job with no row simply keeps its files and saves them, so the worst overlap is a red run.
+
+1. Settings → Secrets and variables → Actions → Variables → New repository variable: `SINGULARITY_STATE_STORE` = `postgres`.
+2. Actions → seed → Run workflow with `state` on and `dry_run` on. The step "Seed the run state" lists the files it would write.
+3. Run it again with `dry_run` off. It writes one row per `state/*.json` on `main` that has none, and never replaces a row.
+4. Check it worked: start a `dry_run` daily (Actions → run). The Gate log has a `state store:` line and the Commit step is green. Then in the Neon SQL editor, as the owner role: `select path, version, updated_at from state_documents order by updated_at desc limit 5`. The newest `state/costs-...json` row has the time of that dry run.
+
+To turn it off: delete the variable. The jobs go back to the files in git, which still carry every run (D300 step 5 stops that, later). The rows then fall behind, and switching on again without clearing them would write old `seen.json` and `judgments.json` over newer files. So before switching on again, clear the table as the owner role (`delete from state_documents`) and repeat steps 1 to 3.

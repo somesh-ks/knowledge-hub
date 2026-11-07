@@ -49,6 +49,9 @@ jobs:
       # saved, not a run-old copy. Either one unset leaves it on the committed files.
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE }}
+      # The run state (D381): the first stage copies it over state/, Publishing saves it with the
+      # commit. Unset leaves the state in git alone.
+      SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
     steps:
       # `github.run_started_at` does not exist; the job's own start is within seconds of the run's.
       - name: Note the start time
@@ -151,8 +154,10 @@ jobs:
     with:
       # The page names this stage by the step's name (apps/web/src/lib/runStages.ts).
       step_name: Recording voices
-    # Named, so the audio job never sees the model keys or the database URL (SEC-03).
+    # Named, so the audio job never sees the model keys or the shared database URL (SEC-03). It gets its
+    # own restricted login for the cost ledger (D381).
     secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
       SPEECHIFY_API_KEY: ${{ secrets.SPEECHIFY_API_KEY }}
+      AUDIO_DATABASE_URL: ${{ secrets.AUDIO_DATABASE_URL }}
