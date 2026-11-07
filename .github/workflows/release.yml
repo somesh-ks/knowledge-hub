@@ -1,0 +1,107 @@
+name: release
+
+# Publishes @singularityfm/design-system (D382 step 5). It only runs in the library's own repository:
+# every job is guarded by github.repository, so in singularityfm-app the jobs are skipped and nothing
+# publishes. Step 6 carries this file into somesh-ks/singularityfm-design-system by filter-repo, and the
+# npm trusted publisher there names this repository and `release.yml`.
+#
+# One file holds both publishing jobs because npm trusts one workflow file per package: a canary job in a
+# file of its own would be refused the OIDC token exchange.
+#
+# - release: weekly and on demand. Pending changesets open or update the version pull request; the merge
+#   of that pull request (it writes the package's CHANGELOG.md) publishes the new version at once. With
+#   nothing pending and the version already on npm, `changeset publish` finds nothing and it is a no-op.
+# - canary: a pull request labelled `canary` publishes 0.0.0-canary-<sha> under the `canary` dist-tag,
+#   so an app pull request can try a fix before the library pull request merges.
+#
+# No NPM_TOKEN: npm trusted publishing exchanges the job's OIDC token (id-token: write) and signs
+# provenance. pnpm 10 hands the publish to the npm CLI, and the npm that ships with Node 24 (.nvmrc) does
+# the exchange.
+on:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - packages/design-system/CHANGELOG.md
+  pull_request:
+    types: [labeled, synchronize]
+    paths:
+      - packages/design-system/**
+      - .changeset/**
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: github.repository == 'somesh-ks/singularityfm-design-system' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    # Version pull request and its branch, the release tags and GitHub releases, and the OIDC token.
+    # A pull request opened with GITHUB_TOKEN starts no checks; step 6 swaps in the library's GitHub App
+    # token here (and turns on "Allow GitHub Actions to create and approve pull requests").
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # The tarball a customer gets must pack, install and build before anything is published.
+      - run: node scripts/designSystemPack.mjs
+      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          publish-script: pnpm exec changeset publish
+          commit-message: "chore(release): version the design system"
+          pr-title: "chore(release): version the design system"
+
+  canary:
+    if: >-
+      github.repository == 'somesh-ks/singularityfm-design-system' &&
+      github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'canary') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: canary-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # The pull request's own head, so {commit} in the snapshot version is the commit an app can name.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: node scripts/designSystemPack.mjs
+      - run: pnpm exec changeset version --snapshot canary
+      # With no changeset pending the version step changes nothing, and the publish would put the plain
+      # version under `canary`; stop instead.
+      - name: Check the snapshot version
+        run: |
+          version=$(node -p "require('./packages/design-system/package.json').version")
+          case "$version" in
+            0.0.0-canary-*) echo "publishing $version" ;;
+            *) echo "::error::No changeset in this pull request, so no canary version ($version). Add one: pnpm exec changeset"; exit 1 ;;
+          esac
+      - run: pnpm exec changeset publish --tag canary --no-git-tag

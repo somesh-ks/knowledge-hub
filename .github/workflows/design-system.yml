@@ -14,6 +14,8 @@ on:
       - apps/design/**
       - .github/CODEOWNERS
       - .claude/skills/feature/references/controls-guide.md
+      - .changeset/**
+      - .github/workflows/release.yml
 
 concurrency:
   group: design-system-${{ github.ref }}
