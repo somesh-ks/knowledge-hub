@@ -21,7 +21,7 @@ The reader's design system as its own site, "Singularity design": `news.someshks
 ## Code
 
 - `apps/design/src` (pages, including `system.json.ts` and `llms.txt.ts`, `scripts/`, `lib/` including `taste.ts`, `styles/guide.css`), `apps/design/vercel.json`
-- `apps/web/src/lib/designCatalogue.ts` (tokens and usage comments)
+- `apps/design/src/lib/catalogue.ts` (the tokens, imported from the package)
 
 ## Gotchas
 

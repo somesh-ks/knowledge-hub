@@ -158,7 +158,7 @@ const RAW_SVG_ALLOWED: [file: string, reason: string][] = [
   ["packages/design-system/src/Icon.astro", "the Icon component"],
   ["player/ui/Icon.tsx", "the island Icon component"],
   ["player/ui/LazyIcon.tsx", "the lazy island Icon component"],
-  ["components/BrandMark.astro", "the wordmark's own mark, not a glyph"],
+  ["packages/design-system/src/BrandMark.astro", "the wordmark's own mark, not a glyph"],
   ["components/EmptyArt.astro", "empty-state illustrations, coloured by classes (own rule above)"],
   [
     "components/EmptyArtHalloween.astro",

@@ -1,7 +1,6 @@
 ---
+import BrandMark from "@singularity/design-system/BrandMark.astro";
 import Icon from "@singularity/design-system/Icon.astro";
-import BrandMark from "../../../web/src/components/BrandMark.astro";
-import { buildDay } from "../../../web/src/lib/buildDay";
 import { href, NAV } from "../lib/sections";
 import ThemeToggle from "./ThemeToggle.astro";
 
@@ -11,6 +10,14 @@ interface Props {
 }
 
 const { current } = Astro.props;
+// The day this build was made, as the reader's foot writes it (apps/web/src/lib/buildDay.ts): the
+// guide leaves with the system, so it formats the day itself rather than import the reader's code.
+const updated = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Stockholm",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+}).format(new Date());
 ---
 
 {/* The reader's navigation, drawn by its own classes (shell.css): a bottom bar below 64rem and a side
@@ -74,7 +81,7 @@ const { current } = Astro.props;
   </ul>
   <div class="guide-nav-foot">
     <ThemeToggle />
-    <p class="guide-updated">Updated {buildDay()}</p>
+    <p class="guide-updated">Updated {updated}</p>
   </div>
 </nav>
 <script>

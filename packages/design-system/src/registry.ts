@@ -1,7 +1,7 @@
 /**
  * The design system's components: each one's name, the stylesheet that draws it, the prefix its
  * classes share, the classes it draws and when to use it. The style guide lists these, and
- * designSystem.test.ts holds the app to them. A new component is added here in the PR that adds it;
+ * scripts/systemUse.test.ts (at the repository root) holds the apps to them. A new component is added here in the PR that adds it;
  * a class not listed here is not part of the system.
  */
 import { AVATAR, AVATAR_CLASSES, AVATAR_RETIRED } from "./avatar";

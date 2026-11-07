@@ -35,7 +35,6 @@ const SKIP = [
   /\/dev\//,
   /\/pages\/api\//,
   /\/types\//,
-  /designCatalogue/,
   /\/design-system\//,
 ];
 /** The server's own words reach a reader only through these (a refusal's reason, a busy page, a share link). */

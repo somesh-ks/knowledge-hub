@@ -202,6 +202,7 @@ describe("design-system gate", () => {
       `${at}: ../../../apps/web/src/lib/sheetHead`,
       `${at}: ../../../apps/web/src/scripts/idle`,
       `${at}: ../../../apps/web/src/components/SheetHeader.astro`,
+      `${at}: @singularity/core/time`,
       `${at}: @singularity/engine`,
     ]);
     // The generators go with the package too (step 6 filters it into its own repository).

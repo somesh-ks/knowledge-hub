@@ -1,12 +1,9 @@
 /**
- * What the style guide (apps/design, D226) reads at build time: the tokens from tokens.json,
- * grouped as the tiers group them, and the usage comment written over a shared class in its
- * stylesheet, so the guide documents the system from the files the system is built from and cannot
- * drift from them. The reader's own catalogue page (D189) is gone.
+ * What the style guide (D226) reads at build time: the tokens from tokens.json, grouped as the
+ * tiers group them, so the guide documents the system from the file the system is built from and
+ * cannot drift from it. It imports the file from the package, never from the reader (D382 step 4c).
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { findRepoRoot } from "./repoRoot";
+import tokens from "@singularity/design-system/tokens/tokens.json";
 
 export interface CatalogueToken {
   /** The dotted path under its tier: "color.accent". */
@@ -42,11 +39,8 @@ const valueText = (value: unknown): string => {
 /** The tokens of one tier, in file order, grouped by their first segment ("color", "space"). */
 export function tokenGroups(
   tier: Tier,
-  root: string = findRepoRoot(),
+  doc: Record<string, unknown> = tokens,
 ): Map<string, CatalogueToken[]> {
-  const doc = JSON.parse(
-    readFileSync(join(root, "packages", "design-system", "tokens", "tokens.json"), "utf8"),
-  ) as Record<string, unknown>;
   const groups = new Map<string, CatalogueToken[]>();
   const walk = (node: unknown, path: string[]): void => {
     if (isToken(node)) {
@@ -69,6 +63,3 @@ export function tokenGroups(
   walk(doc[tier], []);
   return groups;
 }
-
-/** The usage comment over a class in its stylesheet, read as the system file reads it. */
-export { usageComment } from "@singularity/design-system/scripts/system/usage";

@@ -51,7 +51,7 @@ Coding agents building or modifying UI follow these contracts (adapted from Astr
 - **Verification**: Run `npm run design-check` after modifying any CSS or markup to ensure instant adherence to house rules.
 
 ## Code
-- `apps/web/src/lib/designCatalogue.ts`: the tokens and usage comments the [style guide](style-guide.md) reads (D226); the reader's own `/design` catalogue page (D189) is gone
+- `apps/design/src/lib/catalogue.ts`: the tokens the [style guide](style-guide.md) reads (D226); the reader's own `/design` catalogue page (D189) is gone
 - `packages/design-system/styles/`: `tokens.css`, `primitives.css`
 - `apps/web/src/styles/empty.css`
 - `apps/web/src/components/EmptyArt.astro`
@@ -67,4 +67,4 @@ Coding agents building or modifying UI follow these contracts (adapted from Astr
 - A part has an id, classes, use-when, not-when (with the part to use instead), markup, rules, files; the build adds who styles it, the tokens its rules read. A part with no markup use fails the test; the count of files that use it is checked in memory, not stored, so an ordinary UI edit does not make the file stale.
 - `npm run ds -- find "<need>"` ranks parts and tokens; `part <id>`, `part bespoke`, `token <words>`, `list`.
 - A new shared control needs a part in the same change. A family that becomes a design-system component deletes its entries from `parts.ts`.
-- Code and test: `packages/design-system/scripts/system/`.
+- Code and test: `packages/design-system/scripts/system/` and `scripts/system.ts`.

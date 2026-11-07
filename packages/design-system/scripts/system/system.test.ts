@@ -1,80 +1,20 @@
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  buildSystem,
-  classTokens,
-  LLMS_PATH,
-  readBespoke,
-  renderLlms,
-  renderSystemJson,
-  SYSTEM_PATH,
-  sourceFiles,
-} from "./build.js";
+import { classTokens, LLMS_PATH, SYSTEM_PATH } from "./build.js";
 import { findParts, findTokens } from "./query.js";
+import type { System } from "./types.js";
 import { usageComment } from "./usage.js";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
-const system = buildSystem();
+/**
+ * The file as published, which `npm run ds` answers from. Whether it matches the code the apps draw
+ * the system with is checked where both are visible (scripts/system.test.ts at the repository root).
+ */
+const system = JSON.parse(readFileSync(SYSTEM_PATH, "utf8")) as System;
 const ids = new Set(system.parts.map((part) => part.id));
-const allCss = [join(ROOT, "packages/design-system/styles"), join(ROOT, "apps/web/src/styles")]
-  .flatMap((dir) =>
-    readdirSync(dir)
-      .filter((file) => file.endsWith(".css"))
-      .map((file) => readFileSync(join(dir, file), "utf8")),
-  )
-  .join("\n");
 
 describe("the design system file", () => {
-  // Prevents an agent trusting a stale file: a token or part changed and tokens/system.json did not.
-  it("matches the code it is built from (run npm run system when this fails)", () => {
-    expect(readFileSync(SYSTEM_PATH, "utf8")).toBe(renderSystemJson(system));
-    expect(readFileSync(LLMS_PATH, "utf8")).toBe(renderLlms(system));
-  });
-
-  // Prevents a part that names a class nothing styles, or a component that was renamed or deleted.
-  it("names only classes with a stylesheet rule and files that exist", () => {
-    const broken = system.parts.flatMap((part) => [
-      ...(part.styles.length === 0
-        ? [`${part.id}: no stylesheet rule starts with .${part.classes[0]}`]
-        : []),
-      ...part.classes
-        .filter((name) => !new RegExp(`\\.${name}(?![\\w-])`).test(allCss))
-        .map((name) => `${part.id}: .${name} is in no stylesheet`),
-      ...(part.files ?? [])
-        .filter((file) => !existsSync(join(ROOT, file)))
-        .map((file) => `${part.id}: ${file} does not exist`),
-    ]);
-    expect(broken).toEqual([]);
-  });
-
-  // Prevents a dead part: an agent steered to a class the app no longer uses.
-  it("lists only parts the app uses", () => {
-    expect(system.parts.filter((part) => part.usedIn === 0).map((part) => part.id)).toEqual([]);
-  });
-
-  // Prevents a part keeping a class no markup writes: `usedIn` counts a part used when any one of its
-  // classes is, so a dead class (filter-chips-scroll had a rule and no user) hid behind a live one.
-  it("lists only classes the app writes", () => {
-    const written = new Set(sourceFiles().flatMap((file) => [...file.tokens]));
-    const owners = new Map<string, string[]>();
-    for (const part of system.parts)
-      for (const name of part.classes) owners.set(name, [...(owners.get(name) ?? []), part.id]);
-    const dead = [...owners]
-      .filter(([name, parts]) => parts.length === 1 && !written.has(name))
-      .map(([name, parts]) => `${parts[0]}: .${name} is written by no markup`);
-    expect(dead).toEqual([]);
-  });
-
   // Prevents a "not this, use that" pointing at a part that does not exist.
   it("points every alternative at a part", () => {
     const dangling = system.parts.flatMap((part) =>
@@ -84,34 +24,6 @@ describe("the design system file", () => {
     );
     expect(dangling).toEqual([]);
     expect(ids.size).toBe(system.parts.length);
-  });
-
-  // Prevents a shared control that no lookup can find: it is added to the style test's list and no part.
-  it("covers every shared control class", () => {
-    const text = readFileSync(join(ROOT, "apps/web/src/styles/styles.test.ts"), "utf8");
-    const start = text.indexOf("const SHARED_CONTROLS");
-    const block = text.slice(start, text.indexOf("];", start));
-    const shared = [...block.matchAll(/"([a-z-]+)"/g)].map(([, name = ""]) => name);
-    const covered = new Set(system.parts.flatMap((part) => part.classes));
-    expect(shared.length).toBeGreaterThan(5);
-    expect(shared.filter((name) => !covered.has(name))).toEqual([]);
-  });
-
-  // Prevents the bespoke list silently emptying if the style test's list changes shape.
-  it("reads the bespoke controls from the style test", () => {
-    expect(readBespoke().length).toBeGreaterThan(20);
-    expect(system.bespoke.every((item) => item.reason.length > 0)).toBe(true);
-  });
-
-  // Prevents telling an agent a part's own class is "not for reuse": the floating actions and toast
-  // buttons are on the bespoke list and also belong to a part, which is how they are used.
-  it("points a bespoke class that a part lists to that part", () => {
-    const owned = system.bespoke.filter((item) => item.part);
-    expect(owned.length).toBeGreaterThan(0);
-    for (const item of owned)
-      expect(system.parts.find((part) => part.id === item.part)?.classes).toContain(item.class);
-    for (const item of system.bespoke.filter((entry) => !entry.part))
-      expect(system.parts.flatMap((part) => part.classes)).not.toContain(item.class);
   });
 
   // Prevents publishing an opaque hex for a translucent color: the scrim was listed as #151618, which
@@ -124,20 +36,22 @@ describe("the design system file", () => {
   });
 
   // Prevents a part showing another rule's comment: `.settings-row .multiselect` has a comment of its
-  // own, and it was shown as the usage of the settings row.
+  // own, and it was shown as the usage of the settings row. A class may also open a group ("a, b {")
+  // elsewhere with no comment of its own; the comment is the one over its own rule.
   it("takes a usage comment from the rule of the class alone", () => {
     const root = mkdtempSync(join(tmpdir(), "usage-"));
-    mkdirSync(join(root, "apps/web/src/styles"), { recursive: true });
+    mkdirSync(join(root, "styles"), { recursive: true });
     writeFileSync(
-      join(root, "apps/web/src/styles/x.css"),
-      "/* inside the row */\n.row .field {\n  color: red;\n}\n\n/* the row itself */\n.row {\n  color: blue;\n}\n",
+      join(root, "styles/x.css"),
+      "/* inside the row */\n.row .field {\n  color: red;\n}\n\n.row,\n.plain {\n  display: flex;\n}\n\n/* the row itself */\n.row {\n  color: blue;\n}\n",
     );
-    expect(usageComment("apps/web/src/styles/x.css", ".row", root)).toBe("the row itself");
+    expect(usageComment("styles/x.css", ".row", root)).toBe("the row itself");
+    expect(usageComment("styles/x.css", ".plain", root)).toBe("");
   });
 
   // Prevents the index outgrowing its purpose: it is read whole, so each byte is paid for on every task.
   it("keeps llms.txt under 14 KB", () => {
-    expect(Buffer.byteLength(renderLlms(system))).toBeLessThan(14 * 1024);
+    expect(Buffer.byteLength(readFileSync(LLMS_PATH))).toBeLessThan(14 * 1024);
   });
 });
 
