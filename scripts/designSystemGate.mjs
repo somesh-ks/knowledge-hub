@@ -139,7 +139,11 @@ export function boundaryProblems(sources) {
   return sources.flatMap(({ file, text }) =>
     [...text.matchAll(RELATIVE_IMPORT)].flatMap(([, specifier]) => {
       const target = posix.join(posix.dirname(file), specifier.replace(/[?#].*$/, ""));
-      return target.startsWith(SYSTEM_DIR) || startsWithAny(target, owned)
+      // A folder owns what is under it, a file only itself (icon.css owns no icon.css.ts); the flags
+      // prefix also takes its sprite.
+      const owns = (path) =>
+        path.endsWith("/") || path.endsWith("/flags") ? target.startsWith(path) : target === path;
+      return target.startsWith(SYSTEM_DIR) || owned.some(owns)
         ? []
         : [`${file}: ${specifier}`];
     }),

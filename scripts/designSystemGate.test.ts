@@ -179,11 +179,13 @@ describe("design-system gate", () => {
       'import { escapeHtml } from "../lib/sheetHead";',
       'import { warm } from "../scripts/idle";',
       'const view = () => import("../components/SheetHeader.astro");',
+      'import { x } from "../styles/icon.css.ts";',
     ].join("\n");
     expect(boundaryProblems([{ file: at, text }])).toEqual([
       `${at}: ../lib/sheetHead`,
       `${at}: ../scripts/idle`,
       `${at}: ../components/SheetHeader.astro`,
+      `${at}: ../styles/icon.css.ts`,
     ]);
   });
 
