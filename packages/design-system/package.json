@@ -1,0 +1,24 @@
+{
+  "name": "@singularity/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsx scripts/buildTokens.ts",
+    "test": "vitest run"
+  },
+  "exports": {
+    "./styles/*": "./styles/*",
+    "./tokens/*": "./tokens/*",
+    "./fonts/*": "./fonts/*",
+    "./flags/*": "./flags/*",
+    "./scripts/*": "./scripts/*.ts",
+    "./*.astro": "./src/*.astro",
+    "./*": "./src/*.ts"
+  },
+  "devDependencies": {
+    "astro": "^7.4.4",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.5"
+  }
+}

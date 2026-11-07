@@ -20,7 +20,7 @@ if (fixtures) {
 }
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pulled = spawnSync(
-  "npm",
+  "pnpm",
   [
     "run",
     "--silent",

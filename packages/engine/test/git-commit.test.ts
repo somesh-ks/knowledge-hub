@@ -781,6 +781,7 @@ describe("commitAndPush: the run state store (D381)", () => {
     await put(pair.a, "state/seen.json", "{}\n");
     await commitAndPush({ root: pair.a, message: MESSAGE, command: "run", push: true, saveState });
     expect(saved).toEqual([pair.a]);
+    // The audio job's cost ledger is run state too (its login is limited to those files).
     await put(pair.a, "state/usage.json", "{}\n");
     await commitAndPush({
       root: pair.a,
@@ -789,7 +790,16 @@ describe("commitAndPush: the run state store (D381)", () => {
       push: true,
       saveState,
     });
-    expect(saved).toEqual([pair.a]);
+    expect(saved).toEqual([pair.a, pair.a]);
+    await put(pair.a, "config/preferences.json", "{}\n");
+    await commitAndPush({
+      root: pair.a,
+      message: "chore(learn): taste",
+      command: "learn",
+      push: true,
+      saveState,
+    });
+    expect(saved).toEqual([pair.a, pair.a]);
   });
 });
 

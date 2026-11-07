@@ -18,7 +18,7 @@ describe("saving the run state with the commit (D381)", () => {
   // down) would try to push files with no pull record, and fail a second time for the same cause.
   it("sends nothing when this job never pulled", async () => {
     await expect(
-      saveStateIfOn(root, {
+      saveStateIfOn(root, "run", {
         DATABASE_URL: "postgres://unreachable",
         SINGULARITY_STATE_STORE: "postgres",
       }),
@@ -27,7 +27,7 @@ describe("saving the run state with the commit (D381)", () => {
 
   it("does nothing with the switch off", async () => {
     await expect(
-      saveStateIfOn(root, { DATABASE_URL: "postgres://unreachable" }),
+      saveStateIfOn(root, "run", { DATABASE_URL: "postgres://unreachable" }),
     ).resolves.toBeUndefined();
   });
 });
@@ -48,6 +48,7 @@ describe("which commands pull the run state", () => {
     expect(readsStateAtStart("run", ["--stage", "gate"])).toBe(true);
     expect(readsStateAtStart("run", ["--stage", "commit"])).toBe(false);
     expect(readsStateAtStart("run", ["--record-failed"])).toBe(false);
-    expect(readsStateAtStart("publish", [])).toBe(false);
+    // The audio job pulls its own two files so its write is on the stored version (PR 3).
+    expect(readsStateAtStart("publish", [])).toBe(true);
   });
 });

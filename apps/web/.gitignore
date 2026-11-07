@@ -2,3 +2,5 @@
 dist/
 playwright-report/
 test-results/
+# Copied from packages/design-system/flags by astro.config.mjs (serveSystemFlags).
+/public/flags/

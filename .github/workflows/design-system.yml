@@ -8,32 +8,10 @@ name: design-system
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
+    # SYSTEM_PATHS in scripts/designSystemGate.mjs, as globs; its test fails when the two drift.
     paths:
-      - apps/web/src/design-system/**
-      - apps/web/src/styles/buttons.css
-      - apps/web/src/styles/icon.css
-      - apps/web/src/styles/badge.css
-      - apps/web/src/styles/switch.css
-      - apps/web/src/styles/slider.css
-      - apps/web/src/styles/avatar.css
-      - apps/web/src/styles/row-exit.css
-      - apps/web/src/styles/field.css
-      - apps/web/src/styles/select.css
-      - apps/web/src/styles/picker.css
-      - apps/web/src/styles/wheel.css
-      - apps/web/src/styles/ripple.css
-      - apps/web/src/styles/menu.css
-      - apps/web/src/styles/banner.css
-      - apps/web/src/styles/dialog.css
-      - apps/web/src/styles/sheet.css
-      - apps/web/src/styles/drawer.css
-      - apps/web/src/styles/primitives.css
-      - apps/web/src/styles/foundations.css
-      - apps/web/src/styles/tokens.css
-      - tokens/**
+      - packages/design-system/**
       - apps/design/**
-      - scripts/system/**
-      - scripts/colorRamp.ts
       - .github/CODEOWNERS
       - .claude/skills/feature/references/controls-guide.md
 
@@ -72,6 +50,12 @@ jobs:
       - name: Label and scope
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
+          # The freeze (D382 step 4) lists open ds-migration pull requests; this one is left out.
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
           # A label added with GITHUB_TOKEN starts no new run, so the step above hands it over here.
-          LABELS: ${{ (github.event.action == 'opened' || github.event.action == 'reopened') && '["design-system"]' || toJson(github.event.pull_request.labels.*.name) }}
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          # The label the step above just added, which the event's labels do not carry yet.
+          ADD_LABEL: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
         run: node scripts/designSystemGate.mjs

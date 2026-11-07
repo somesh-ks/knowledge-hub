@@ -36,7 +36,7 @@ export function parseBrandColors(tokensCss: string): BrandColors {
 
 /** Page code is bundled, so the file is found from the repository root rather than from this module. */
 export function readBrandColors(
-  tokensPath: string = join(findRepoRoot(), "apps", "web", "src", "styles", "tokens.css"),
+  tokensPath: string = join(findRepoRoot(), "packages", "design-system", "styles", "tokens.css"),
 ): BrandColors {
   return parseBrandColors(readFileSync(tokensPath, "utf8"));
 }

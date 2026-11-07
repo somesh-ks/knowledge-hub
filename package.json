@@ -2,29 +2,26 @@
   "name": "singularity",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.34.9",
   "engines": {
     "node": ">=24"
   },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
     "singularity": "tsx packages/engine/src/cli.ts",
-    "typecheck": "npm run typecheck:packages && npm run check -w @singularity/web && npm run check -w @singularity/admin && npm run check -w @singularity/design",
+    "typecheck": "pnpm run typecheck:packages && pnpm --filter @singularity/web run check && pnpm --filter @singularity/admin run check && pnpm --filter @singularity/design run check",
     "typecheck:packages": "tsc --noEmit -p tsconfig.json",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "vitest run",
     "test:fast": "vitest run --exclude '**/git-*.test.ts'",
     "gate": "node scripts/gate.mjs",
-    "build": "npm run build -w @singularity/web && npm run build -w @singularity/admin && npm run build -w @singularity/design",
-    "dev": "npm run dev -w @singularity/web",
-    "dev:admin": "npm run dev -w @singularity/admin",
-    "tokens": "tsx scripts/buildTokens.ts",
-    "system": "tsx scripts/system/build.ts",
-    "ds": "tsx scripts/system/cli.ts",
-    "design-check": "vitest run apps/web/src/styles/styles.test.ts scripts/buildTokens.test.ts",
+    "build": "pnpm --filter @singularity/web run build && pnpm --filter @singularity/admin run build && pnpm --filter @singularity/design run build",
+    "dev": "pnpm --filter @singularity/web run dev",
+    "dev:admin": "pnpm --filter @singularity/admin run dev",
+    "tokens": "tsx packages/design-system/scripts/buildTokens.ts",
+    "system": "tsx scripts/system.ts",
+    "ds": "tsx packages/design-system/scripts/system/cli.ts",
+    "design-check": "vitest run apps/web/src/styles/styles.test.ts packages/design-system/scripts/buildTokens.test.ts scripts/houseRules.test.ts",
     "blast-radius": "node scripts/blastRadius.mjs",
     "glyphs": "tsx scripts/buildGlyphs.ts",
     "emoji": "tsx scripts/buildEmoji.ts",
@@ -34,27 +31,28 @@
     "covers:sheet": "tsx packages/cover/scripts/contactSheet.ts",
     "secrets:push": "tsx scripts/pushSecrets.ts",
     "backfill:opus": "tsx scripts/backfillOpus.ts",
-    "dev:design": "npm run dev -w @singularity/design",
+    "dev:design": "pnpm --filter @singularity/design run dev",
     "vercel:list": "vercel list",
     "vercel:inspect": "vercel inspect",
     "vercel:logs": "vercel logs",
     "vercel:env-list": "vercel env list"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "^2.6.4",
     "@phosphor-icons/core": "2.1.1",
+    "@playwright/test": "^1.64.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "@singularity/core": "workspace:*",
+    "@singularity/design-system": "workspace:*",
     "@types/node": "^26.6.6",
+    "@typesafe-ai/sdk": "^0.7.0",
     "emojibase-data": "18.0.0",
+    "esbuild": "^0.28.2",
+    "playwright": "^1.64.1",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.5"
-  },
-  "overrides": {
-    "@vercel/routing-utils": {
-      "path-to-regexp": "6.3.0"
-    },
-    "@vercel/cli-config": {
-      "zod": "4.6.7"
-    }
+    "vitest": "^5.0.5",
+    "zod": "^4.6.7"
   }
 }

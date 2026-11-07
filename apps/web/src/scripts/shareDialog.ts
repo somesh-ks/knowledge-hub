@@ -1,6 +1,6 @@
-import { buttonClass } from "../design-system/button";
-import { escapeHtml, sheetHeadHtml } from "../lib/sheetHead";
-import { dismissOnScrim } from "./pullDismiss";
+import { buttonClass } from "@singularity/design-system/button";
+import { dismissOnScrim } from "@singularity/design-system/pullDismiss";
+import { escapeHtml, sheetHeadHtml } from "@singularity/design-system/sheetHead";
 
 /** How long the button says "Copied" before it offers the copy again. */
 const COPIED_MS = 2000;

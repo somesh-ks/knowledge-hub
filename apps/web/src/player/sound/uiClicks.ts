@@ -11,7 +11,7 @@
  * setting, reduced motion and the autoplay rules is the engine's job, so a blocked or disabled
  * engine makes this a silent no-op.
  */
-import { WHEEL_DETENT } from "../../design-system/wheel";
+import { WHEEL_DETENT } from "@singularity/design-system/wheel";
 import { HOLD_UNTIL } from "../../scripts/cardHold";
 import { cuePlayedSince, getHaptics, playUiCue } from "./soundController";
 import type { Cue } from "./soundMap";

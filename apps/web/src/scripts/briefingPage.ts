@@ -3,10 +3,10 @@
  * section tabs and the contents list, and it shares the briefing's address. Loaded by the briefing
  * view. A bundled module runs once per session, so the per-page work listens for astro:page-load.
  */
-import { glowFavorite } from "../design-system/glow";
+import { glowFavorite } from "@singularity/design-system/glow";
+import { warmWhenIdle } from "@singularity/design-system/idle";
 import { deviceStorage, isSaved, setSaved } from "../player/core/saved";
 import { installHeroMenu } from "./heroMenu";
-import { warmWhenIdle } from "./idle";
 import { prepareEarly, shareItem, shareLink } from "./shareLink";
 import { stickyTop } from "./stickyTop";
 import { sendToast } from "./toastEvent";

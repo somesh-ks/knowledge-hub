@@ -8,7 +8,7 @@
  * (HeroMenu.astro, `data-page-menu`) offers the same Download and Add to queue and is wired here too.
  */
 
-import { glowFavorite } from "../design-system/glow";
+import { glowFavorite } from "@singularity/design-system/glow";
 import { track } from "../lib/analytics";
 import { downloadFailure } from "../lib/downloadCopy";
 import { NotReadyError } from "../lib/downloads";

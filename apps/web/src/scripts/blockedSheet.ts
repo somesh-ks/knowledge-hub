@@ -4,9 +4,10 @@
  * into a native modal dialog (the Topics panel's way, topicsPanel.ts); picks are collected and
  * handed back together when Block is pressed, and blockedPage.ts saves them.
  */
+
+import { sheetGestures } from "@singularity/design-system/pullDismiss";
 import { blockedDomainOf, customBlock, matchesQuery } from "../lib/blockedOutlets";
 import { fitAboveKeyboard } from "./keyboardFit";
-import { sheetGestures } from "./pullDismiss";
 import { guardSheet } from "./sheetGuard";
 
 export interface BlockedSheet {

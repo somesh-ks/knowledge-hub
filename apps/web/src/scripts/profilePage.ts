@@ -4,7 +4,7 @@
  * here), marks the one in use, and stores a pick in the preferences. The avatar in the bar and on
  * this page redraw from the same store (accountAvatar.ts).
  */
-import { AVATAR_SHAPES, avatarClass, avatarMarkup } from "../design-system/avatar";
+import { AVATAR_SHAPES, avatarClass, avatarMarkup } from "@singularity/design-system/avatar";
 import { getPreferences } from "../player/core/preferences";
 import { currentShape, offeredShapes } from "./accountAvatar";
 

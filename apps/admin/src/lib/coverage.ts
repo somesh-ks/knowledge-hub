@@ -11,8 +11,12 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { classTokens } from "../../../../scripts/system/build";
-import type { BespokeControl, PartKind, System } from "../../../../scripts/system/types";
+import { classTokens } from "@singularity/design-system/scripts/system/build";
+import type {
+  BespokeControl,
+  PartKind,
+  System,
+} from "@singularity/design-system/scripts/system/types";
 
 export interface PartUse {
   id: string;
@@ -36,12 +40,12 @@ export interface Coverage {
   oneOffUses: number;
 }
 
-/** The repository's root: the first folder up from the build's own that holds tokens/system.json. */
+/** The repository's root: the first folder up from the build's own that holds the design system's system.json. */
 export function repoRoot(from: string = process.cwd()): string {
   let dir = from;
-  while (!existsSync(join(dir, "tokens/system.json"))) {
+  while (!existsSync(join(dir, "packages/design-system/tokens/system.json"))) {
     const up = dirname(dir);
-    if (up === dir) throw new Error(`No tokens/system.json above ${from}`);
+    if (up === dir) throw new Error(`No packages/design-system/tokens/system.json above ${from}`);
     dir = up;
   }
   return dir;

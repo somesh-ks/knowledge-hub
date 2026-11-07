@@ -9,6 +9,7 @@
  * the Create panel. Loaded the first time it is opened.
  */
 import type { SourceFormat } from "@singularity/core";
+import { sheetGestures } from "@singularity/design-system/pullDismiss";
 import type { HeldSource } from "../lib/sourceCatalogMatch";
 import {
   parseSuggestedAdd,
@@ -19,7 +20,6 @@ import {
   webAddress,
 } from "../lib/topicText";
 import { fitAboveKeyboard } from "./keyboardFit";
-import { sheetGestures } from "./pullDismiss";
 import { mountSegmentedNav, selectTab } from "./segmentedNav";
 import { fieldsDirty, guardSheet } from "./sheetGuard";
 import { element, iconNode, type SourcePreview, scoreNode } from "./topicsView";

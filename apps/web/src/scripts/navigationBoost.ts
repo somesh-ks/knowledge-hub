@@ -10,8 +10,8 @@
  *   - a page that changed behind its saved copy is swapped in quietly, if it has not been touched.
  */
 
+import { whenIdle } from "@singularity/design-system/idle";
 import { isOnline } from "../lib/connectivity";
-import { whenIdle } from "./idle";
 import { ARRIVED_ATTRIBUTE } from "./navigation";
 
 /** Links only: the side column also has a button (the queue's row), which has no page to go to. */

@@ -6,8 +6,8 @@
  * reason can be read; the shell's disabled guard swallows their clicks.
  */
 
+import { warmWhenIdle } from "@singularity/design-system/idle";
 import { connectivity, isOnline } from "../lib/connectivity";
-import { warmWhenIdle } from "./idle";
 import { readRun } from "./runStatus";
 
 const BUSY_ID = "episode-actions-busy";

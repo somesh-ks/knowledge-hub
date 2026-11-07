@@ -1,11 +1,11 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
-import { buttonClass } from "../design-system/button";
+import { buttonClass } from "@singularity/design-system/button";
 import {
   dialogActionsClass,
   dialogBodyClass,
   dialogClass,
   dialogTitleClass,
-} from "../design-system/dialog";
+} from "@singularity/design-system/dialog";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { getSpeedDefault } from "./core/speedDefaultRuntime";
 import { rateLabel } from "./rateLabels";
 

@@ -8,7 +8,7 @@
  * in the library page for each podcast"), so a phone reaches its actions without any dots: a tap on
  * the row plays it, the handle alone moves it.
  */
-import { MENU_SELECTORS } from "../design-system/menu";
+import { MENU_SELECTORS } from "@singularity/design-system/menu";
 
 /** The complement of the one query that draws a ⋮ (library.css): where there are no dots there is the hold. */
 const TOUCH = "not ((hover: hover) and (pointer: fine))";

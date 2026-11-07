@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "tsx ../../scripts/buildTokens.ts && tsx ../../scripts/pullConfig.ts && tsx ../../scripts/pullContent.ts",
+    "prebuild": "tsx ../../packages/design-system/scripts/buildTokens.ts && tsx ../../scripts/pullConfig.ts && tsx ../../scripts/pullContent.ts",
     "build": "astro build",
     "postbuild": "tsx scripts/checkBundle.ts && tsx scripts/checkFunction.ts",
     "preview": "node e2e/run.mjs",
@@ -17,10 +17,11 @@
     "@astrojs/react": "^7.1.2",
     "@astrojs/vercel": "11.0.17",
     "@base-ui/react": "^1.9.0",
-    "@singularity/core": "*",
-    "@singularity/cover": "*",
-    "@singularity/engine": "*",
-    "@singularity/sound": "*",
+    "@singularity/core": "workspace:*",
+    "@singularity/cover": "workspace:*",
+    "@singularity/design-system": "workspace:*",
+    "@singularity/engine": "workspace:*",
+    "@singularity/sound": "workspace:*",
     "@vercel/blob": "^2.8.2",
     "@vercel/functions": "^3.10.5",
     "astro": "^7.4.4",
@@ -33,10 +34,12 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@axe-core/playwright": "^4.14.0",
+    "@electric-sql/pglite": "^0.5.14",
     "@playwright/test": "^1.64.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "agentation": "^3.1.2",
+    "linkedom": "^0.18.14",
     "typescript": "~6.0.3",
     "vercel": "65.9.0"
   }

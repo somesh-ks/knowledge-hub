@@ -1454,6 +1454,73 @@
         "characters": 5777
       },
       "usd": 0.05777
+    },
+    {
+      "id": "2026-11-07T13:17:14.077Z|on_demand|write|anthropic|claude-haiku-5-5|owner",
+      "at": "2026-11-07T13:19:41.035Z",
+      "run_id": "2026-11-07T13:17:14.077Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "write",
+      "provider": "anthropic",
+      "product": "claude-haiku-5-5",
+      "units": {
+        "input_tokens": 21764,
+        "output_tokens": 16798
+      },
+      "usd": 0.010575
+    },
+    {
+      "id": "2026-11-07T13:17:14.077Z|on_demand|judge|typesafe|jev|owner",
+      "at": "2026-11-07T13:19:41.035Z",
+      "run_id": "2026-11-07T13:17:14.077Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "judge",
+      "provider": "typesafe",
+      "product": "jev",
+      "units": {
+        "requests": 182
+      },
+      "usd": 0
+    },
+    {
+      "id": "2026-11-07T13:17:14.077Z|on_demand|fetch|exa|search|owner",
+      "at": "2026-11-07T13:19:41.035Z",
+      "run_id": "2026-11-07T13:17:14.077Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "fetch",
+      "provider": "exa",
+      "product": "search",
+      "units": {
+        "requests": 14
+      },
+      "usd": 0.07,
+      "estimated": true
+    },
+    {
+      "id": "2026-11-07T13:17:14.077Z|on_demand|fetch|firecrawl|scrape|owner",
+      "at": "2026-11-07T13:19:41.035Z",
+      "run_id": "2026-11-07T13:17:14.077Z",
+      "kind": "on_demand",
+      "timezone": "Europe/Stockholm",
+      "user": "owner",
+      "scope": "user",
+      "stage": "fetch",
+      "provider": "firecrawl",
+      "product": "scrape",
+      "units": {
+        "credits": 16
+      },
+      "usd": 0.01328,
+      "estimated": true
     }
   ]
 }

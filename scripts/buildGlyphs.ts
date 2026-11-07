@@ -14,8 +14,8 @@ import { fileURLToPath } from "node:url";
  */
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-export const GLYPHS_PATH = resolve(ROOT, "tokens/glyphs.json");
-export const PAGE_REGISTRY_PATH = resolve(ROOT, "apps/web/src/lib/icons.ts");
+export const GLYPHS_PATH = resolve(ROOT, "packages/design-system/tokens/glyphs.json");
+export const PAGE_REGISTRY_PATH = resolve(ROOT, "packages/design-system/src/icons.ts");
 export const PLAYER_REGISTRY_PATH = resolve(ROOT, "apps/web/src/player/ui/iconPaths.tsx");
 /** Every player glyph. Only code that loads on demand imports it, so its size costs no page load. */
 export const PLAYER_LAZY_REGISTRY_PATH = resolve(ROOT, "apps/web/src/player/ui/iconPathsLazy.tsx");
