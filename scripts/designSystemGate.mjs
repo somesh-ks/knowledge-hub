@@ -69,6 +69,9 @@ const WORKSPACE_PLUMBING = [
  */
 const MAY_CHANGE = [
   ...SYSTEM_PATHS,
+  // A file moved into the system moves its path in the admin's build filter and the blast-radius map.
+  "apps/admin/ignore-build.sh",
+  "scripts/blastRadius.mjs",
   "docs/decisions/",
   "docs/history/",
   "docs/design-engineering-ledger.md",
@@ -117,7 +120,7 @@ const CALL_SITES = ["apps/web/src/", "apps/web/e2e/", "apps/admin/src/"];
  * replaced. A family's pull request adds the names it retires here, so its own call sites count.
  */
 export const SYSTEM_NAMES =
-  /--ghost-(?:accent-)?(?:hover|pressed)\b|\btabs-bar\b|\bButton\b|buttonClass|<(?:Lazy)?Icon(?![\w.])|<Badge(?![\w.])|<Flag(?![\w.])|<Code(?![\w.])|codeSnippetHtml|wireCodeCopy|styles\/code\.css|glowFavorite|--radius-round\b|styles\/glow\.css|flagNode|flagParts|showText|shownText|FLAG_REGIONS|flagSymbolId|styles\/flag\.css|<RowExit(?![\w.])|rowExitClass|<Avatar(?![\w.])|avatarMarkup|avatarClass|PlayPauseIcons|badgeClass|badge-label|iconClass|iconHtml|icon-glyph|text-(?:display|title|heading)\b|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|selectSheet|data-select-sheet|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select|sheet|drawer)\.css|data-sheet=|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<LibraryItemMenu(?![\w.])|sheetHeadHtml|<Ripple(?![\w.])|installRipple|data-ripple|<Banner(?![\w.])|bannerClass|bannerText|player-notice|<Dialog(?:Actions)?(?![\w.])|dialogClass|dialogActionsClass|dialogBodyClass|DIALOG_SELECTOR|confirm-(?:dialog|form|actions)|<DialogTitle|dialogTitleClass|<Sheet(?![\w.])|sheet(?:Body|Head|Title)?Class|(?:CREATE_|PANEL_)?SHEET_SELECTOR|create-sheet(?:-head|-body)?\b|drawer(?:Scrim|Viewport|Popup|Panel|Head)Class|sheet-(?:scrim|viewport|popup|panel)/;
+  /\bdesign-system\/|--ghost-(?:accent-)?(?:hover|pressed)\b|\btabs-bar\b|\bButton\b|buttonClass|<(?:Lazy)?Icon(?![\w.])|<Badge(?![\w.])|<Flag(?![\w.])|<Code(?![\w.])|codeSnippetHtml|wireCodeCopy|styles\/code\.css|glowFavorite|--radius-round\b|styles\/glow\.css|flagNode|flagParts|showText|shownText|FLAG_REGIONS|flagSymbolId|styles\/flag\.css|<RowExit(?![\w.])|rowExitClass|<Avatar(?![\w.])|avatarMarkup|avatarClass|PlayPauseIcons|badgeClass|badge-label|iconClass|iconHtml|icon-glyph|text-(?:display|title|heading)\b|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|selectSheet|data-select-sheet|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select|sheet|drawer)\.css|data-sheet=|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<LibraryItemMenu(?![\w.])|sheetHeadHtml|<Ripple(?![\w.])|installRipple|data-ripple|<Banner(?![\w.])|bannerClass|bannerText|player-notice|<Dialog(?:Actions)?(?![\w.])|dialogClass|dialogActionsClass|dialogBodyClass|DIALOG_SELECTOR|confirm-(?:dialog|form|actions)|<DialogTitle|dialogTitleClass|<Sheet(?![\w.])|sheet(?:Body|Head|Title)?Class|(?:CREATE_|PANEL_)?SHEET_SELECTOR|create-sheet(?:-head|-body)?\b|drawer(?:Scrim|Viewport|Popup|Panel|Head)Class|sheet-(?:scrim|viewport|popup|panel)/;
 
 const SYSTEM_DIR = "apps/web/src/design-system/";
 const SOURCE_FILE = /\.(?:ts|tsx|astro|mjs|js)$/;

@@ -7,6 +7,7 @@ import {
   boundaryProblems,
   checkDesignSystemPr,
   listEntries,
+  SYSTEM_NAMES,
   systemSources,
 } from "./designSystemGate.mjs";
 
@@ -50,6 +51,9 @@ describe("design-system gate", () => {
       "apps/design/src/pages/buttons.astro",
       "docs/decisions/design-system.md",
       "AGENTS.md",
+      // A file moved into the system moves its paths in the build filters and the blast-radius map.
+      "apps/admin/ignore-build.sh",
+      "scripts/blastRadius.mjs",
     ];
     expect(
       checkDesignSystemPr({
@@ -76,6 +80,9 @@ describe("design-system gate", () => {
     expect(problems).toHaveLength(2);
     expect(problems.join("\n")).toContain("apps/web/src/server/health.ts");
     expect(problems.join("\n")).toContain("docs/specs/engine.md");
+    // A file that imports from the system draws it, so a module moved into design-system/ (D382)
+    // makes each importer a call site.
+    expect(SYSTEM_NAMES.test('import { warmWhenIdle } from "../design-system/idle";')).toBe(true);
   });
 
   it("names each file a labelled pull request carries that is not design-system work", () => {
