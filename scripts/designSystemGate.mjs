@@ -27,6 +27,9 @@ export const SYSTEM_PATHS = [
   "apps/design/",
   ".github/CODEOWNERS",
   ".claude/skills/feature/references/controls-guide.md",
+  // How the package is released (D382 step 5): its pending changesets and the publishing workflow.
+  ".changeset/",
+  ".github/workflows/release.yml",
 ];
 
 /**
@@ -97,6 +100,13 @@ const MAY_CHANGE = [
   "docs/learnings.md",
   "scripts/designSystemGate",
   ".github/workflows/design-system.yml",
+  // The package as a customer installs it (D382 step 5): the pack-and-install check and its CI step, and
+  // the consumers' manifests, which reach the published name through a workspace alias.
+  "scripts/designSystemPack.mjs",
+  ".github/workflows/ci.yml",
+  "apps/web/package.json",
+  "apps/admin/package.json",
+  "packages/cover/package.json",
   ".claude/skills/feature/",
   "AGENTS.md",
   "package.json",

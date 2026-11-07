@@ -36,12 +36,18 @@ jobs:
         run: |
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"
-            echo "shared=true" >> "$GITHUB_OUTPUT"; exit 0
+            echo "shared=true" >> "$GITHUB_OUTPUT"; echo "pack=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           # An unreachable base (a force-push) must run every check, never skip them.
           if ! changed=$(git diff --name-only "$BASE" HEAD); then
             echo "code=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"
-            echo "shared=true" >> "$GITHUB_OUTPUT"; exit 0
+            echo "shared=true" >> "$GITHUB_OUTPUT"; echo "pack=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # What the published design system is made of: the package, its install and the check itself.
+          if printf '%s\n' "$changed" | grep -qE '^(packages/design-system/|pnpm-(lock|workspace)\.yaml$|\.nvmrc$|scripts/designSystemPack\.mjs$)'; then
+            echo "pack=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pack=false" >> "$GITHUB_OUTPUT"
           fi
           # The tokens and the shared stylesheets carry most of the load-bearing design fixes.
           if printf '%s\n' "$changed" | grep -qE '^(packages/design-system/(tokens/|styles/(primitives|buttons)\.css$)|apps/web/src/styles/player\.css$)'; then
@@ -125,6 +131,12 @@ jobs:
         env:
           SINGULARITY_FIXTURES: "1"
         run: pnpm run build
+      # The design system as a customer installs it (D382 step 5): packs it, installs the tarball into a
+      # throwaway Astro project and builds a page from it, so a file left out of `files` or a broken
+      # export fails here; the workspace link hides both. About 15 s.
+      - name: Pack and install the design system
+        if: steps.diff.outputs.code == 'true' && steps.diff.outputs.pack == 'true'
+        run: node scripts/designSystemPack.mjs
 
   # A design fix (a sizer, a fixed width, a specificity bump) is invisible to the checks above: a
   # change that undoes one passes typecheck, lint, unit tests and the build. Both browser suites
