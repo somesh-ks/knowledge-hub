@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
-    "@singularity/design-system": "workspace:*",
+    "@singularity/design-system": "workspace:@singularityfm/design-system@*",
     "@singularity/web": "workspace:*",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

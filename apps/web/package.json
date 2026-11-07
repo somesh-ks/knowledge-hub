@@ -19,7 +19,7 @@
     "@base-ui/react": "^1.9.0",
     "@singularity/core": "workspace:*",
     "@singularity/cover": "workspace:*",
-    "@singularity/design-system": "workspace:*",
+    "@singularity/design-system": "workspace:@singularityfm/design-system@*",
     "@singularity/engine": "workspace:*",
     "@singularity/sound": "workspace:*",
     "@vercel/blob": "^2.8.2",

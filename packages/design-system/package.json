@@ -1,8 +1,32 @@
 {
-  "name": "@singularity/design-system",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@singularityfm/design-system",
+  "version": "0.0.0",
+  "description": "Singularity's design system: Astro components, stylesheets, tokens, fonts and flags.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/somesh-ks/singularityfm-design-system.git",
+    "directory": "packages/design-system"
+  },
   "type": "module",
+  "files": [
+    "src",
+    "styles",
+    "tokens",
+    "fonts",
+    "flags",
+    "scripts",
+    "!**/*.test.ts",
+    "COMPATIBILITY.md"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "./scripts/themeInit.js"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsx scripts/buildTokens.ts",
     "test": "vitest run"
@@ -16,6 +40,9 @@
     "./scripts/*": "./scripts/*.ts",
     "./*.astro": "./src/*.astro",
     "./*": "./src/*.ts"
+  },
+  "peerDependencies": {
+    "astro": "^7.4.4"
   },
   "devDependencies": {
     "astro": "^7.4.4",

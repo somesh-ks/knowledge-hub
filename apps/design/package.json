@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
-    "@singularity/design-system": "workspace:*",
+    "@singularity/design-system": "workspace:@singularityfm/design-system@*",
     "typescript": "~6.0.3"
   }
 }
