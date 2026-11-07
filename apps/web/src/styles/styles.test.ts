@@ -85,6 +85,10 @@ const ALLOWED_4PX: [selector: string, reason: string][] = [
   [".library-filters", "room for the chips' focus ring inside the scroller"],
   [".filter-chips-scroll", "room for the chips' focus ring inside the scroller"],
   ['[data-view="list"] .card-link::after', "the row's press layer, inset as a hit area"],
+  [
+    '[data-view="list"] .card-link:focus-visible::before',
+    "the row's focus ring: the press layer's inset, and as far from the cover at its side",
+  ],
   [".card-match", "title onto its subtitle inside one row"],
   [".card-sub", "title onto its subtitle inside one row"],
   [".multiselect-text", "title onto its subtitle inside one option"],
