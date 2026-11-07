@@ -54,6 +54,21 @@ export function configStoreUrl(env: {
     : null;
 }
 
+/**
+ * The URL to use when the run state store is switched on, or null (D381). Its own switch, beside
+ * the config store's, so state can be turned on and off without touching the owner's config.
+ */
+export function stateStoreUrl(env: {
+  DATABASE_URL?: string | undefined;
+  SINGULARITY_STATE_STORE?: string | undefined;
+}): string | null {
+  return env.DATABASE_URL !== undefined &&
+    env.DATABASE_URL !== "" &&
+    env.SINGULARITY_STATE_STORE === "postgres"
+    ? env.DATABASE_URL
+    : null;
+}
+
 /** The URL and its password, decoded: an error that names either must be logged without it. */
 export function databaseSecrets(databaseUrl: string): string[] {
   try {
@@ -86,4 +101,20 @@ export function readsConfigAtStart(command: string, argv: readonly string[]): bo
   const flag = argv[at] ?? "";
   const stage = flag.includes("=") ? flag.slice(flag.indexOf("=") + 1) : argv[at + 1];
   return stage === "gate";
+}
+
+/**
+ * Whether a command copies the run state (state/*.json) from the store at its start (D381). The
+ * same commands as the config, except that a podcast does it in its first stage only: its later
+ * stages run in the same checkout and hold spend and timings that are not committed yet, which a
+ * second pull would write over.
+ */
+export function readsStateAtStart(command: string, argv: readonly string[]): boolean {
+  if (!readsConfigAtStart(command, argv)) return false;
+  if (command !== "podcast") return true;
+  const at = argv.findIndex((arg) => arg === "--stage" || arg.startsWith("--stage="));
+  if (at === -1) return true;
+  const flag = argv[at] ?? "";
+  const stage = flag.includes("=") ? flag.slice(flag.indexOf("=") + 1) : argv[at + 1];
+  return stage === "select";
 }

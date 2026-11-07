@@ -18,9 +18,12 @@ import {
   connectConfigStore,
   hydrateConfig,
   readsConfigAtStart,
+  readsStateAtStart,
   type SqlClient,
+  stateStoreUrl,
 } from "./store/configDocs.js";
 import { missingConfigFiles, REQUIRED_CONFIG_DOCUMENTS } from "./store/configExamples.js";
+import { pullState } from "./store/stateDocs.js";
 
 /** Where the CLI prints and what it reads, so tests drive it without touching the process. */
 export interface CliIo {
@@ -275,6 +278,27 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
           `singularity: config/ is missing ${missing.join(", ")} and the config store is off (${off.join("; ")}). In GitHub Actions set the repository variable SINGULARITY_CONFIG_STORE=postgres and the secret DATABASE_URL; on a machine run: npm run singularity -- config pull\n`,
         );
         return 1;
+      }
+    }
+  }
+
+  // The run state lives in Postgres when its switch is on (D381): copied over state/ before the
+  // command reads it, sent back by the commit (git/commit.ts). A store that cannot be read stops the
+  // command, since a push from stale files would write them over newer rows; `health` only reports.
+  if (readsStateAtStart(spec.name, parsed.rest)) {
+    const stateUrl = stateStoreUrl(env);
+    if (stateUrl !== null) {
+      try {
+        const sql = await (io.connectConfigStore ?? connectConfigStore)(stateUrl);
+        const changed = await pullState(root, sql);
+        log.info(`state store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
+      } catch (error) {
+        const reason = redact(firstLine(String(error)), secrets);
+        if (spec.name !== "health") {
+          err(`singularity: the state store cannot be read (${reason}).\n`);
+          return 1;
+        }
+        log.warn(`state store unreachable, health reads the files here: ${reason}`);
       }
     }
   }

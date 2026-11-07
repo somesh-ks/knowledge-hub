@@ -134,7 +134,17 @@ async function refreshEpisodeIndex(
  * `tracked`: the checkout pulled its content from the store (D300), so an episode is never a git
  * change and a commit of nothing is how a delete or a quiet episode ends, not a failure.
  */
-function commitFailure(outcome: CommitOutcome, tracked: boolean): string | null {
+function commitFailure(
+  outcome: CommitOutcome,
+  tracked: boolean,
+  log: CommandContext["log"],
+): string | null {
+  // The episode is on the remote and live: only its cost and timing records missed Postgres, so a
+  // retry (which would make a second episode and use up a Catch up) is the wrong answer.
+  if (outcome.status === "push_failed" && outcome.reason === "state_store") {
+    log.error(`The episode was saved, but ${outcome.detail}`);
+    return null;
+  }
   switch (outcome.status) {
     case "nothing_to_commit":
       return tracked ? null : "Nothing to commit: the episode file was not picked up by git";
@@ -261,7 +271,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
           command: "podcast",
           push: values["no-push"] !== true,
         });
-        const failure = commitFailure(outcome, tracked);
+        const failure = commitFailure(outcome, tracked, ctx.log);
         if (failure !== null) {
           await recordFailure(commitFailureReason(outcome) ?? undefined);
           ctx.log.error(
@@ -444,7 +454,7 @@ export function makePodcastCommand(deps: PodcastDeps = {}): CommandRun {
         command: "podcast",
         push: values["no-push"] !== true,
       });
-      const failure = commitFailure(outcome, tracked);
+      const failure = commitFailure(outcome, tracked, ctx.log);
       if (failure !== null) {
         await live.stream?.failed();
         await recordFailure(commitFailureReason(outcome) ?? undefined);
