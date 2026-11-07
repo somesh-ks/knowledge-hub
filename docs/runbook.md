@@ -20,8 +20,8 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 
 ### 1.1 Prerequisites
 
-1. Install Node 24 or newer (`.nvmrc` pins the version).
-2. From the repository root, run `npm ci`.
+1. Install Node 24 (`.nvmrc` pins the version). Node 25 and later ship without Corepack: run `npm install -g corepack` first.
+2. Run `corepack enable` once (it gives you the pnpm version `package.json` pins), then from the repository root run `pnpm install --frozen-lockfile`.
 3. Log in to GitHub: `gh auth login`.
 4. Optional: log in to Vercel (`npx vercel login`) to use the CLI for the Blob store or env checks. Creating the project needs only the dashboard.
 
@@ -332,7 +332,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 1. Open the project's Deployments in the Vercel dashboard and read the latest deployment. After a run concludes, the site updates when Vercel finishes, usually a minute or two.
 2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL` are set (`gh variable list -R somesh-ks/singularityfm-app`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
 3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. A push that did touch code is also skipped while it waits for the batch: five merges, three hours, or `[deploy]` in a commit since the last deploy (D375, `scripts/deploy-batch.sh`). The three hours are judged only when some push to main runs the script, so on a quiet night push again or use `[deploy]` before suspecting the `ignoreCommand`; `site_behind` warns only after six hours. To ship a merge at once, merge with `[deploy]` at the end of the PR title; for one already made, ask any session to merge a one-line docs change titled `docs: deploy now [deploy]`. If a code push stayed skipped past the batch, check the `ignoreCommand` in `apps/web/vercel.json`; `singularity health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short. Hobby also refuses every deploy at 100 in a rolling 24 hours, cancelled builds included ("Deployment rate limited"); `health` warns `deploy_rate` at 70 (D247), and the cure is to find the project that builds more than merges explain.
-4. A build error about missing packages or paths: check Root Directory is `apps/web`, "Include source files outside of the Root Directory" is on, and the `installCommand` in `apps/web/vercel.json` runs `npm ci` from the repository root.
+4. A build error about missing packages or paths: check Root Directory is `apps/web`, "Include source files outside of the Root Directory" is on, and the `installCommand` in `apps/web/vercel.json` runs `pnpm install --frozen-lockfile` from the repository root.
 5. `news.someshks.work` shows an old page but the deploy succeeded: wait a minute, then hard refresh. Check that the DNS record is DNS only. A proxied record (orange cloud) breaks certificate issuance.
 
 ### 8.6 The Generate button fails
@@ -374,7 +374,7 @@ Git holds the code, state and docs. It does not hold secrets (`.env`, GitHub sec
 | --- | --- |
 | A bad digest | Delete it in the app (or run `delete` on `run.yml`) and run again. It is no longer in git, so a revert does not bring back an older one |
 | A bad edit to one file | `git checkout <sha> -- <path>`, commit, push |
-| Laptop lost | Clone `https://github.com/somesh-ks/singularityfm-app.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
+| Laptop lost | Clone `https://github.com/somesh-ks/singularityfm-app.git`, run `pnpm install --frozen-lockfile`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
 | GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.9 and update `GITHUB_REPOSITORY` |
 | Audio lost | Digests are in the content store, not git. Run `content pull`, delete the digest's `.audio.json` locally, set `audio: null` in its `.md`, then `content put <path of the .md>` and `content remove <path of the .audio.json>` (in that order, so a failure between them never leaves a digest pointing at a missing file), and run `audio.yml`. It regenerates at a cost in Speechify characters |
 | Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then push to `main` or redeploy from the dashboard |

@@ -43,13 +43,14 @@ jobs:
         with:
           ref: main
 
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       - name: Install
-        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
 
       - name: Seed
         shell: bash
@@ -63,7 +64,7 @@ jobs:
           seed_args=(--json)
           [ "$REPLACE" = "true" ] && seed_args+=(--replace)
           [ "$DRY" = "true" ] && seed_args+=(--dry-run)
-          npm run --silent singularity -- config seed "${seed_args[@]}"
+          pnpm run --silent singularity -- config seed "${seed_args[@]}"
 
       # The run state (D381): one row per state/*.json on main. Run it just AFTER setting the
       # SINGULARITY_STATE_STORE variable, with no run under way. Before it, a run that commits between
@@ -78,4 +79,4 @@ jobs:
         run: |
           state_args=()
           [ "$DRY" = "true" ] && state_args+=(--dry-run)
-          npm run --silent singularity -- state seed "${state_args[@]}"
+          pnpm run --silent singularity -- state seed "${state_args[@]}"

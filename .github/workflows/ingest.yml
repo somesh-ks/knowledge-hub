@@ -29,17 +29,18 @@ jobs:
           # The config store copy compares the files with their history (configBase); a shallow clone has none.
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       - name: Install
-        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
 
       - name: Ingest
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE }}
-        run: npm run --silent singularity -- ingest
+        run: pnpm run --silent singularity -- ingest

@@ -11,8 +11,8 @@ isolation: worktree
 You implement one workstream the brief names, in your own worktree. Touch only the files the brief lists.
 
 Setup, once:
-- The worktree has no `node_modules`. Never run `npm ci` or install anything (two installs in separate worktrees filled the disk), and never junction the whole root `node_modules` (`@singularity/*` would then resolve to the main checkout and your checks would test the wrong code). Run `node scripts/worktreeLinks.mjs <this worktree's path>`: it links each installed package and points `@singularity/*` at this worktree's own packages. Run every command through PowerShell (`powershell -NoProfile -Command "Set-Location '<path>'; ..."`): a process started from Git Bash costs 3 to 8 s here, from PowerShell 50 ms.
-- Do not remove a worktree. Cleanup is the main session's: `node scripts/worktreeLinks.mjs <path> --remove` first, then `git worktree remove`.
+- The worktree has no `node_modules`. Run `pnpm install --frozen-lockfile --offline` in it once: it hard-links packages from the shared store (no download, little disk) and points `@singularity/*` at this worktree's own packages. Never install anything else. Run every command through PowerShell (`powershell -NoProfile -Command "Set-Location '<path>'; ..."`): a process started from Git Bash costs 3 to 8 s here, from PowerShell 50 ms.
+- Do not remove a worktree. Cleanup is the main session's: `git worktree remove`.
 
 Budget: you have about 90 tool calls. Commit a work-in-progress commit after your first passing check and again every 25 calls, so a stop loses nothing. By call 70 stop adding scope, get the checks green, and send your report; a worker that reaches the cap without a report costs the brief again (it happened twice on 2026-10-13).
 

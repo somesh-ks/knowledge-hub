@@ -8,7 +8,7 @@
     "./style": "./src/style.ts"
   },
   "dependencies": {
-    "@singularity/core": "*",
+    "@singularity/core": "workspace:*",
     "@resvg/resvg-js": "^2.6.2",
     "fontkitten": "^1.0.3"
   }

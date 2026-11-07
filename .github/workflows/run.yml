@@ -147,16 +147,17 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       # Only the engine's packages: the site's (Astro, React, Playwright) are not needed to run it, and
       # leaving them out takes the install from about 10 seconds to about 4.
       - name: Install
         id: install
-        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
 
       # Digests and episodes are in the content store, not in git (D300). Copy them in first: the job
       # reads them (the ids already taken, the audio still owed, the stories an episode draws on).
@@ -169,7 +170,7 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: |
           for attempt in 1 2 3; do
-            npm run --silent singularity -- content pull --track || { sleep $((attempt * 10)); continue; }
+            pnpm run --silent singularity -- content pull --track || { sleep $((attempt * 10)); continue; }
             exit 0
           done
           exit 1
@@ -187,7 +188,7 @@ jobs:
           # on, and does nothing while it is off. Git still carries the same files (step 5 stops that).
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
-        run: npm run --silent singularity -- run --delete "$DELETE_ID" --json
+        run: pnpm run --silent singularity -- run --delete "$DELETE_ID" --json
 
       - name: Gate
         id: gate
@@ -216,7 +217,7 @@ jobs:
           [ -n "$LENGTH" ] && args+=(--length "$LENGTH")
           [ -n "$STORIES" ] && args+=(--stories "$STORIES")
           [ "$DRY" = "true" ] && args+=(--dry-run)
-          npm run --silent singularity -- run --stage gate "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
+          pnpm run --silent singularity -- run --stage gate "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
           echo "due=$(jq -r '.due' "$RUNNER_TEMP/gate.json")" >> "$GITHUB_OUTPUT"
 
       - name: Fetch
@@ -228,7 +229,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-        run: npm run --silent singularity -- run --stage fetch --json
+        run: pnpm run --silent singularity -- run --stage fetch --json
 
       - name: Judge
         if: steps.gate.outputs.due == 'true'
@@ -240,7 +241,7 @@ jobs:
           # A favorite creator's video is judged on its transcript (D255): Firecrawl captions first, so
           # Gemini's three transcriptions a run are kept for videos with none.
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-        run: npm run --silent singularity -- run --stage judge --json
+        run: pnpm run --silent singularity -- run --stage judge --json
 
       - name: Write
         if: steps.gate.outputs.due == 'true'
@@ -254,7 +255,7 @@ jobs:
           # Typed text from the site: passed as data in the environment, never spliced into the script.
           FEEDBACK: ${{ inputs.feedback }}
           TOPICS: ${{ inputs.topics }}
-        run: npm run --silent singularity -- run --stage write --feedback "$FEEDBACK" --topics "$TOPICS" --json
+        run: pnpm run --silent singularity -- run --stage write --feedback "$FEEDBACK" --topics "$TOPICS" --json
 
       - name: Validate
         if: steps.gate.outputs.due == 'true'
@@ -266,7 +267,7 @@ jobs:
           # A briefing that validation cut short is refilled once, and the refill reads its
           # stories' pages the way the write stage does.
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-        run: npm run --silent singularity -- run --stage validate --json
+        run: pnpm run --silent singularity -- run --stage validate --json
 
       # Every story each pass considered (pool, judgments, selection), kept 30 days, so loop/replay.ts
       # can rebuild a briefing exactly, and why each written story did or did not air (written.json,
@@ -301,7 +302,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           [ -f .cache/run/open-batches.json ] || exit 0
-          npm run --silent singularity -- batch-settle
+          pnpm run --silent singularity -- batch-settle
 
       # Commit records the outcome (published, nothing, gated, failed) in state/last-run.json
       # before the run concludes. Published, nothing and gated all end as a successful run.
@@ -320,7 +321,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
         run: |
-          npm run --silent singularity -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
+          pnpm run --silent singularity -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
           echo "outcome=$(jq -r '.outcome' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
           echo "deploy=$(jq -r '.deploy' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
 
@@ -347,12 +348,12 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
         run: |
-          [ "$INSTALLED" = "success" ] || npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+          [ "$INSTALLED" = "success" ] || pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
           args=(--mode "$MODE" --json)
           [ "$FORCE" = "true" ] && args+=(--force)
           [ -n "$REPLACE" ] && args+=(--replace "$REPLACE")
           [ "$DRY" = "true" ] && args+=(--dry-run)
-          npm run --silent singularity -- run --record-failed "${args[@]}"
+          pnpm run --silent singularity -- run --record-failed "${args[@]}"
 
       # The digest itself is saved by the commit stage, before its git commit. This step sends the rest
       # (the state files the site reads, a deleted digest) once the commit is in. A failed upload is
@@ -364,7 +365,7 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: |
           for attempt in 1 2 3; do
-            npm run --silent singularity -- content push || { sleep $((attempt * 10)); continue; }
+            pnpm run --silent singularity -- content push || { sleep $((attempt * 10)); continue; }
             exit 0
           done
           exit 1
@@ -380,7 +381,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           RESULT: ${{ job.status }}
           OUTCOME: ${{ steps.commit.outputs.outcome }}
-        run: npm run --silent singularity -- log-run --result "$RESULT" --outcome "$OUTCOME"
+        run: pnpm run --silent singularity -- log-run --result "$RESULT" --outcome "$OUTCOME"
 
       # The writer model experiment. It runs last, so it cannot delay or block publication, and
       # not after a cancel. It reads the run's own source text on this runner and prints only the
@@ -399,7 +400,7 @@ jobs:
         run: |
           # A run can hold a regular and a weekly pass, each with its own file.
           jq -s '{version: 1, items: [.[].items[]]}' .cache/run/*/materials.json > "$RUNNER_TEMP/materials.json"
-          npx tsx packages/engine/eval/writerModels.ts --materials "$RUNNER_TEMP/materials.json" --limit 12 \
+          pnpm exec tsx packages/engine/eval/writerModels.ts --materials "$RUNNER_TEMP/materials.json" --limit 12 \
             --out "$RUNNER_TEMP/writer-models" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # The Commit push does not deploy: vercel.json's ignoreCommand skips it (D199), and the digest

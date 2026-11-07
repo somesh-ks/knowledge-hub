@@ -52,6 +52,17 @@ export const SYSTEM_PATHS = [
 ];
 
 /**
+ * Files under a system path that build and deploy the guide like any other app: its manifest, its
+ * Vercel config and its build filter. A repo-wide tooling change (npm to pnpm, D382) edits them in
+ * every app at once, so they are not system work, and a design-system pull request may still carry them.
+ */
+const WORKSPACE_PLUMBING = [
+  "apps/design/package.json",
+  "apps/design/vercel.json",
+  "apps/design/ignore-build.sh",
+];
+
+/**
  * What a design-system pull request may change besides the system itself (owner, 2026-10-29: "have it
  * stricter"). Records and tooling by exact path; app code only where it draws or restyles the system.
  */
@@ -95,7 +106,7 @@ const MAY_CHANGE = [
   ".claude/skills/feature/",
   "AGENTS.md",
   "package.json",
-  "package-lock.json",
+  "pnpm-lock.yaml",
 ];
 
 /** App code a labelled pull request may touch, but only a file that names the system (see below). */
@@ -177,7 +188,9 @@ export function allowlistAdditions(before, after, lists) {
  */
 export function checkDesignSystemPr({ files, labels, namesSystem = () => false, added = [] }) {
   const labelled = labels.includes(LABEL);
-  const touched = files.filter((file) => startsWithAny(file, SYSTEM_PATHS));
+  const touched = files.filter(
+    (file) => startsWithAny(file, SYSTEM_PATHS) && !WORKSPACE_PLUMBING.includes(file),
+  );
   const problems = [];
   if (touched.length > 0 && !labelled) {
     problems.push(

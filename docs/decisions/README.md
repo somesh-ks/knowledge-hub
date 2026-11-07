@@ -75,7 +75,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D203 | Live Health page | active |
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
-| D206 | Stay on npm; pnpm spiked | active |
+| D206 | Stay on npm; pnpm spiked | superseded by D382 |
 | D207 | A Regenerate asks for its own length | amends D204; amended by D323, D337 |
 | D208 | A list of generations, with Cancel | partly superseded by D231 (the list); amends D204 |
 | D209 | Lane free in the hold | supersedes D135; amends D197; step 1 built (#399), steps 2 to 5 not built |

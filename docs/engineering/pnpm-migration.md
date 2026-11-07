@@ -1,6 +1,6 @@
 # Moving to pnpm: what a spike found, and the steps
 
-2026-10-28, in a scratch worktree of this branch with pnpm 10.28 and Node 24. Not adopted (D206); this is what a later branch needs.
+2026-10-28, in a scratch worktree of this branch with pnpm 10.28 and Node 24. Adopted by D382 (2026-11-07); kept as the record of what the move needed. `worktreeLinks.mjs` is gone: a worktree runs `pnpm install --frozen-lockfile --offline`.
 
 ## What worked
 

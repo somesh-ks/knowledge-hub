@@ -31,13 +31,14 @@ jobs:
         with:
           ref: main
 
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       - name: Install
-        run: npm ci --ignore-scripts --workspace=packages/engine --workspace=apps/web --include-workspace-root
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine... --filter @singularity/web...
 
       # D318: the pages keep their edge copy until the content changes, so a run that saved content
       # empties it. The purge comes WAIT_SECONDS after the last Save content step of the run: the
@@ -89,4 +90,4 @@ jobs:
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npm run --silent singularity -- push notify
+        run: pnpm run --silent singularity -- push notify

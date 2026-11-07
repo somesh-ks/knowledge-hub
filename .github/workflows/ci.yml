@@ -51,7 +51,7 @@ jobs:
           fi
           # The browser suites are the only checks that see CSS and layout: any change the site is
           # built from may need them: the site, packages, tokens, build scripts, lockfile and workflows.
-          if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|scripts/build|package(-lock)?\.json$|tsconfig|\.nvmrc$|\.github/workflows/(ci|browser)\.yml$)'; then
+          if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|scripts/build|package\.json$|pnpm-(lock|workspace)\.yaml$|tsconfig|\.nvmrc$|\.github/workflows/(ci|browser)\.yml$)'; then
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
             echo "web=false" >> "$GITHUB_OUTPUT"
@@ -65,15 +65,16 @@ jobs:
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       # What ships, read from the lockfile (no install). A high or critical advisory fails the
-      # check; path-to-regexp under @astrojs/vercel is held at a patched 6.x by the root
+      # check; path-to-regexp under @astrojs/vercel is held at a patched 6.x by the pnpm-workspace.yaml
       # `overrides` (docs/engineering/hardening.md). The registry's audit service being down (a 503 on
       # 2026-10-22, seven minutes then a failure) is not a finding: it warns and the check passes.
       - name: Audit production dependencies
         shell: bash
         run: |
           set +e
-          out=$(timeout 150 npm audit --omit=dev --audit-level=high --json 2>/dev/null)
+          out=$(timeout 150 pnpm audit --prod --audit-level high --json 2>/dev/null)
           code=$?
           set -e
           if [ "$code" -eq 0 ]; then exit 0; fi
@@ -81,14 +82,14 @@ jobs:
             # Only the service being away (a hang, a 5xx, a network error) passes; a broken lockfile
             # or any other error fails, so the audit is never skipped in silence.
             if [ "$code" -eq 124 ] || grep -qiE '"code": *"(E5[0-9][0-9]|ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN)"|Service Unavailable|Bad Gateway|Gateway Time' <<<"$out"; then
-              echo "::warning::npm's audit service did not answer; dependencies were not audited this run"
+              echo "::warning::the audit service did not answer; dependencies were not audited this run"
               exit 0
             fi
-            echo "npm audit failed: $out"
+            echo "pnpm audit failed: $out"
             exit 1
           fi
           # The advisories themselves, not every package the severity flows up to.
-          jq -r '[.vulnerabilities[].via[] | objects | select(.severity == "high" or .severity == "critical") | "\(.severity): \(.name): \(.title) \(.url)"] | unique[]' <<<"$out"
+          jq -r '[.advisories[] | select(.severity == "high" or .severity == "critical") | "\(.severity): \(.module_name): \(.title) \(.url)"] | unique[]' <<<"$out"
           exit 1
       # The record's budgets, links and Index. Always on, because a docs-only change sets code=false and
       # skips everything below, yet two green docs PRs can together break main (D175). Plain node, no install.
@@ -98,9 +99,9 @@ jobs:
         if: steps.diff.outputs.code == 'true'
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
       - if: steps.diff.outputs.code == 'true'
-        run: npm ci --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
       # The Opus transcode (packages/engine/src/audio/transcode.ts) needs ffmpeg with libopus, which
       # the runner image does not carry; without it audio-episodeOpus.test.ts skips.
       - name: ffmpeg
@@ -111,18 +112,18 @@ jobs:
           required: "true"
       - name: Typecheck
         if: steps.diff.outputs.code == 'true'
-        run: npm run typecheck
+        run: pnpm run typecheck
       - name: Lint
         if: steps.diff.outputs.code == 'true'
-        run: npm run lint
+        run: pnpm run lint
       - name: Test
         if: steps.diff.outputs.code == 'true'
-        run: npm test
+        run: pnpm test
       - name: Build site
         if: steps.diff.outputs.code == 'true'
         env:
           SINGULARITY_FIXTURES: "1"
-        run: npm run build
+        run: pnpm run build
 
   # A design fix (a sizer, a fixed width, a specificity bump) is invisible to the checks above: a
   # change that undoes one passes typecheck, lint, unit tests and the build. Both browser suites
