@@ -689,7 +689,7 @@ main.library [data-library][data-view="list"] .library-grid {
     var(--space-2)
   );
   outline: var(--stroke-ring) solid var(--color-focus-ring);
-  outline-offset: calc(var(--stroke-ring) * -1);
+  outline-offset: 0;
   pointer-events: none;
 }
 
