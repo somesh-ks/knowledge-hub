@@ -75,7 +75,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D203 | Live Health page | active |
 | D204 | Guards for a short or lost run, health metrics, one run card | active |
 | D205 | Settings paint the kept copy at once | amends D172 |
-| D206 | Stay on npm; pnpm spiked | active |
+| D206 | Stay on npm; pnpm spiked | superseded by D382 |
 | D207 | A Regenerate asks for its own length | amends D204; amended by D323, D337 |
 | D208 | A list of generations, with Cancel | partly superseded by D231 (the list); amends D204 |
 | D209 | Lane free in the hold | supersedes D135; amends D197; step 1 built (#399), steps 2 to 5 not built |
@@ -105,7 +105,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D233 | Ingest in shadow: free sources, Blob text | active |
 | D234 | Vetted publishers pass the bar; topic rubric | active |
 | D236 | Agent design lookup | active |
-| D237 | Controls are components; design-system PRs apart | amends D189 |
+| D237 | Controls are components; design-system PRs apart | amends D189; amended by D382 |
 | D238 | Ten-step OKLCH ramps | active |
 | D239 | A travelling device is offered the new zone | amends D100 |
 | D240 | Community votes outrank publisher status | amends D234 |
@@ -122,7 +122,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D251 | Ingest: one Blob object a run | amends D233 |
 | D252 | Warning is orange | amends D238 |
 | D253 | UI fixes start at the component | amends D237 |
-| D254 | One PR per task; one rolling DS PR | amends D237; amended by D292 |
+| D254 | One PR per task; one rolling DS PR | amends D237; amended by D292, D382 |
 | D255 | Videos judged on transcripts | amends D248 |
 | D256 | Covers drawn on request; failed-run stages in one Blob object | amends D173, D251 |
 | D257 | Report routes need sign-in | amends D201, D224 |
@@ -164,7 +164,7 @@ Status words: `active` (holds), `amends Dn` or `supersedes Dn` (holds, and chang
 | D295 | Playback audio session only while Sounds is on | amends D105 |
 | D296 | Config store is the only home of owner config; examples in the repo | amends D149; supersedes D185 |
 | D297 | A section may stand over its allowance only as far as the floor needs | amends D35 |
-| D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9 |
+| D298 | Repository public, owner data moved out of git, history rewritten last | supersedes D9; amended by D382 |
 | D299 | Offline settings edits stay on the device and send when back online | amends D79, D91, D259; amended by D331, D335 |
 | D300 | Digests and audio in Blob, state in Postgres, weekly private snapshot of the config store | partly superseded by D311; steps 1 and 2a built, 2b in review; amended by D339 |
 | D302 | Pipeline plan Steps 3 to 7 and the Firecrawl monitor pilot are parked | active |

@@ -1,13 +1,13 @@
 ---
-import Select from "../design-system/Select.astro";
-import "../styles/field.css";
+import Select from "@singularity/design-system/Select.astro";
+import "@singularity/design-system/styles/field.css";
 import { SUPPORTED_TIMEZONES, zoneLabel } from "@singularity/core";
-import Icon from "../design-system/Icon.astro";
-import Switch from "../design-system/Switch.astro";
+import Icon from "@singularity/design-system/Icon.astro";
+import Switch from "@singularity/design-system/Switch.astro";
 import { LENGTHS } from "../lib/createForm";
 import { CADENCES, hourLabel, WEEKDAYS } from "../lib/schedule";
 import { storyOptions } from "../lib/storyOptions";
-import "../styles/picker.css";
+import "@singularity/design-system/styles/picker.css";
 
 interface Props {
   /** The profile: its fields are named and identified by it, as the engine's schedule file names them. */

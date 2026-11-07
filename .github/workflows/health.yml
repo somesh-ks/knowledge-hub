@@ -60,10 +60,11 @@ jobs:
           # whether the live build holds it: both need history, not one commit.
           fetch-depth: 100
 
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       # The probe costs several minutes of a capped allowance (D148), so it runs on Mondays and on a
       # manual run; the other days health judges no performance. A drill drops the real findings,
@@ -81,15 +82,15 @@ jobs:
       - name: Install
         # apps/web brings Playwright, which only the probe needs.
         run: >-
-          npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
-          ${{ steps.probe.outputs.run == 'true' && '--workspace=apps/web' || '' }}
+          pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
+          ${{ steps.probe.outputs.run == 'true' && '--filter @singularity/web' || '' }}
 
       # Digests and episodes are in the content store, not in git (D300); the checks read them.
       - name: Load content
         shell: bash
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-        run: npm run --silent singularity -- content pull
+        run: pnpm run --silent singularity -- content pull
 
       # The lab probe (D147, scripts/perfProbe.ts). One that fails (the site down, a timeout) writes
       # no perf.json and never fails the job: health reads the missing file as `perf_unmeasured`.
@@ -100,8 +101,8 @@ jobs:
         # Nine throttled loads of up to 65 s each, after the browser install, with room to spare.
         timeout-minutes: 15
         run: |
-          npx playwright install --with-deps chromium
-          npx tsx scripts/perfProbe.ts https://news.someshks.work --out "$RUNNER_TEMP/perf.json"
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec tsx scripts/perfProbe.ts https://news.someshks.work --out "$RUNNER_TEMP/perf.json"
 
       # The ingest shadow's reading (D233, D251): how many of the dailies' stories the store held and
       # how many pages it read. It reads the dailies Load content pulled and Neon, and calls no model.
@@ -122,7 +123,7 @@ jobs:
             echo
             echo '```'
             status=0
-            npm run --silent singularity -- ingest --coverage 2>&1 || status=$?
+            pnpm run --silent singularity -- ingest --coverage 2>&1 || status=$?
             echo "ingest --coverage exited with status $status"
             echo '```'
             exit "$status"
@@ -171,7 +172,7 @@ jobs:
           side="$RUNNER_TEMP/side-runs.json"
           jq -n --slurpfile c "$RUNNER_TEMP/side-content.json" --slurpfile i "$RUNNER_TEMP/side-ingest.json" --slurpfile p "$RUNNER_TEMP/side-podcast.json" '{content: $c[0], ingest: $i[0], podcast: $p[0]}' > "$side" || { echo "::warning title=side_runs_unread::could not assemble the side-run history"; echo '{}' > "$side"; }
           # --save keeps the report for the admin Health page's Budgets rows (D360).
-          npm run --silent singularity -- health --json --save --ceiling-usd "$CEILING" --runs "$runs" --side-runs "$side" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
+          pnpm run --silent singularity -- health --json --save --ceiling-usd "$CEILING" --runs "$runs" --side-runs "$side" --perf "$PERF" | tee "$RUNNER_TEMP/health.json" >/dev/null
           echo "exit=${PIPESTATUS[0]}"
           jq -r '.findings[] | "\(.severity) [\(.aspect)] \(.code): \(.message)"' "$RUNNER_TEMP/health.json" || true
           # Performance findings are mostly warnings, which open no issue (D147, D156), so they go on
@@ -205,7 +206,7 @@ jobs:
             # a briefing or weekly pass due today (a run_failed or run_overdue makes one due) would
             # take the dry run past it and pay for models.
             refuse=""
-            due=$(npm run --silent singularity -- run --stage gate --mode scheduled --dry-run --json | jq -r '.due') || due=""
+            due=$(pnpm run --silent singularity -- run --stage gate --mode scheduled --dry-run --json | jq -r '.due') || due=""
             if [ "$due" = "true" ]; then
               refuse="run.yml's gate says a briefing or the weekly pass is due today, so its dry run would pay for model calls"
             elif [ "$due" != "false" ]; then

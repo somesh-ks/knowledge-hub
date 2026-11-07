@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..");
-const STYLES = join(ROOT, "apps", "web", "src", "styles");
+const STYLES = join(ROOT, "packages", "design-system", "styles");
 const DS_FILES = ["buttons.css", "badge.css", "banner.css", "icon.css"];
 const ICONS = ["close", "chevronLeft", "chevronRight", "pencilSimple", "search", "openInNew"];
 const TAG_KEYS = ["device", "browser", "theme", "mood", "hue", "state"];
@@ -140,7 +140,7 @@ function iconSvgs() {
 
 function fontFace() {
   const font = readFileSync(
-    join(ROOT, "apps", "web", "src", "assets", "fonts", "google-sans-flex-latin-wght-normal.woff2"),
+    join(ROOT, "packages", "design-system", "fonts", "google-sans-flex-latin-wght-normal.woff2"),
   );
   const css = readFileSync(join(STYLES, "fonts.css"), "utf8");
   const fallback =

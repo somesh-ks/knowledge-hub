@@ -26,18 +26,18 @@ Unit (CI): 367 files, 5,572 tests, 2 min. Site e2e: 449, 14 min. Player: 80, 7 m
 - Guardrails (D360): #673 awaits his merge, `secrets:push`. closed when: Health's Budgets are fresh.
 - Rewrite (D376), Stories (D377). closed when: his next rewrite fetches in 1 min, plays at 0:00; 20 stories at 5 min air 20 in 5.5 min.
 - Listen now streams (D366): parts as the script is written, for Catch up and Regenerate. closed when: Somesh's first live Catch up plays on his phone without a pause.
-- Blob on Pro trial since 10-30, ending 11-13 (D251, D256). Plan call 11-08: keep Pro. closed when: chosen.
+- Blob on Pro trial to 11-13 (D251, D256). Plan call 11-08: keep Pro. closed when: chosen.
 - Deploy batching (D375): 5 merges, 3 hours or `[deploy]`. closed when: a merge day builds at most 8 times; `[deploy]` ships in minutes.
 - Bottom bar ripple (D286, D347) and tab state. closed when: on his Android Chrome Settings pages rise, tabs slide at 250 ms, and the latest podcast keeps its tab lit.
-- Run state in Postgres (D381): switch off, untried on Neon. closed when: one daily run with it on leaves rows equal to `state/`.
+- Run state in Postgres (D381): switch off, untried on Neon (runbook 14, 14.1). closed when: a daily run with it on leaves rows equal to `state/`.
 - Config snapshot (D300 step 1): `snapshot.yml` writes `config_snapshots` each Sunday; untried on Neon. closed when: it has run once and `config restore --file` on a copy rebuilds the rows.
-- Edge purge waits from the run's last save (#590, D318); after the 11-03 daily it waited 27 s. closed when: a Catch up's `content` log says `waiting N s` under 30 and its Library entry opens on the new page
+- Edge purge waits from the run's last save (#590, D318); the 11-03 daily waited 27 s. closed when: a Catch up's `content` log says `waiting N s` under 30 and its Library entry opens on the new page
 - Queue (D346, D357), dock swipes (D359). The red strip's fix (#659) assumes Chrome's 8 px slop. closed when: on his Android a swipe shows a red strip, the player's swipes are silent, and the bar's pull fades to its target, line at bottom.
 - Player ⋮ menu and Saved (D309, #580): checked in Chromium only. closed when: held press, the speed screen and Settings > Saved work on his Android Chrome.
 - Voice list (D276): closed when: a voice is heard from its list on his iPhone.
 - Copy says podcast, not briefing; code names keep `briefing` (D211). closed when: the next daily says "podcast".
 - More menu (D214); Catch up album, Share circle, cards (D219); long press, haptics (D264, D273); push ping (D284). closed when: signed off.
-- Two Catch ups in 24 hours, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
+- Two Catch ups in 24 h, made or under way (D213). closed when: a third is refused; a regenerate or delete uses none.
 - Three regenerations per podcast, counted in its own file (D212). closed when: the page shows "2 of 3 regenerations left".
 - Short podcasts (D204, D216 to D225). 11-05: dailies 1.04 and 1.02, metrics 7 of 10 runs at 1.02. closed when: two dailies in a row air within 10% of length, and `singularity metrics` shows ten runs at `length_share` 0.9+, `failure_rate` 0.1 or less.
 - Every Claude step starts at Haiku medium, then Haiku high, then Sonnet medium (D308, D333, D334). 11-03 daily: share 1.04, 11 cents. closed when: two scheduled runs drop no more voice or grounding (`lost_reasons`) than the last Sonnet-only runs, and a podcast script holds `length_share` 0.9+ (else tell the owner).

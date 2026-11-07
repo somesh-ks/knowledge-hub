@@ -8,9 +8,12 @@ import { tokenGroups, usageComment } from "./designCatalogue";
 function root(css: string, tokens: object): string {
   const dir = mkdtempSync(join(tmpdir(), "design-catalogue-"));
   mkdirSync(join(dir, "apps", "web", "src", "styles"), { recursive: true });
-  mkdirSync(join(dir, "tokens"), { recursive: true });
+  mkdirSync(join(dir, "packages", "design-system", "tokens"), { recursive: true });
   writeFileSync(join(dir, "apps", "web", "src", "styles", "x.css"), css);
-  writeFileSync(join(dir, "tokens", "tokens.json"), JSON.stringify(tokens));
+  writeFileSync(
+    join(dir, "packages", "design-system", "tokens", "tokens.json"),
+    JSON.stringify(tokens),
+  );
   return dir;
 }
 
@@ -34,10 +37,10 @@ describe("the design catalogue's readers", () => {
       ].join("\n"),
       {},
     );
-    expect(usageComment("x.css", ".icon-btn", dir)).toBe(
+    expect(usageComment("apps/web/src/styles/x.css", ".icon-btn", dir)).toBe(
       "The icon button: one glyph in a round target.",
     );
-    expect(usageComment("x.css", ".plain", dir)).toBe("");
+    expect(usageComment("apps/web/src/styles/x.css", ".plain", dir)).toBe("");
   });
 
   it("names each token as the build writes it and keeps a reference as written", () => {

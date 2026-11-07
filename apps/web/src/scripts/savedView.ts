@@ -10,7 +10,7 @@
 
 import type { SourceFormat } from "@singularity/core";
 import { topicEmoji } from "@singularity/core/topicEmoji";
-import { shownText, showText } from "../design-system/flag";
+import { shownText, showText } from "@singularity/design-system/flag";
 import { outletsSummary, savedBlocked } from "../lib/blockedOutlets";
 import { chosenSummary } from "../lib/multiSelect";
 import { outboxOps } from "../lib/outbox";

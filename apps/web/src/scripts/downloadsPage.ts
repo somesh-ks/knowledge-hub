@@ -4,10 +4,11 @@
  * them newest first. A row's sheet removes one at once; a swipe and Delete all ask first (D369).
  * Both go through `removeDownload`, so the shared scripts and styles the pages kept go with the last.
  */
+
+import { whenIdle } from "@singularity/design-system/idle";
 import { downloadsSummary, SEARCH_FROM } from "../lib/downloads";
 import { normalize, textHasWords } from "../lib/library";
 import { installDownloadsSwipe, restoreRow } from "./downloadsSwipe";
-import { whenIdle } from "./idle";
 import { readDownloads, removeAllDownloads, removeDownload } from "./libraryDownloads";
 import { sendToast } from "./toastEvent";
 

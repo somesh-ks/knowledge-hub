@@ -32,6 +32,20 @@ export const STATE_BASELINE_PATH = ".cache/state-pulled.json";
 const STATE_PATH = /^state\/[a-z0-9-]+\.json$/;
 const CONFIG_PATHS: ReadonlySet<string> = new Set(CONFIG_DOCUMENT_PATHS);
 
+/** Which state files a job may touch: a job with a restricted login sees only its own rows. */
+export type StateScope = (path: string) => boolean;
+
+/**
+ * The audio job's files: the cost ledger and the legacy count (D381). Its database login can see no
+ * other row (row-level security, docs/runbook.md), so its pull and push name these and no more.
+ */
+const AUDIO_STATE = /^state\/(costs-\d{4}-\d{2}|usage)\.json$/;
+
+/** The files a command's pull and push cover; undefined is all of them. */
+export function stateScopeFor(command: string): StateScope | undefined {
+  return command === "publish" ? (path) => AUDIO_STATE.test(path) : undefined;
+}
+
 /** A file this store may hold. The suggested sources are the config store's (D296), not these. */
 export function isStatePath(path: string): boolean {
   return STATE_PATH.test(path) && !CONFIG_PATHS.has(path);
@@ -111,7 +125,11 @@ async function writeBaseline(root: string, baseline: Baseline): Promise<void> {
   await writeFileAtomic(join(root, STATE_BASELINE_PATH), `${JSON.stringify(baseline)}\n`);
 }
 
-async function readRows(sql: SqlClient, paths?: readonly string[]): Promise<StoredRow[]> {
+async function readRows(
+  sql: SqlClient,
+  paths?: readonly string[],
+  scope: StateScope = () => true,
+): Promise<StoredRow[]> {
   const rows =
     paths === undefined
       ? await sql.query("select path, content, version from state_documents")
@@ -125,11 +143,11 @@ async function readRows(sql: SqlClient, paths?: readonly string[]): Promise<Stor
       content: String(row.content),
       version: Number(row.version),
     }))
-    .filter((row) => isStatePath(row.path));
+    .filter((row) => isStatePath(row.path) && scope(row.path));
 }
 
 /** The state files in the checkout. */
-async function localStatePaths(root: string): Promise<string[]> {
+async function localStatePaths(root: string, scope: StateScope = () => true): Promise<string[]> {
   let names: string[];
   try {
     names = await readdir(join(root, "state"));
@@ -139,7 +157,7 @@ async function localStatePaths(root: string): Promise<string[]> {
   }
   return names
     .map((name) => `state/${name}`)
-    .filter(isStatePath)
+    .filter((path) => isStatePath(path) && scope(path))
     .sort();
 }
 
@@ -148,13 +166,17 @@ async function localStatePaths(root: string): Promise<string[]> {
  * ignored (a stray path must not reach `.env`, `Digests/` or outside the checkout); a file with no
  * row is kept, and a push will add it. Returns the paths whose file changed.
  */
-export async function pullState(root: string, sql: SqlClient): Promise<string[]> {
+export async function pullState(
+  root: string,
+  sql: SqlClient,
+  scope?: StateScope,
+): Promise<string[]> {
   const changed: string[] = [];
   const baseline: Baseline = {};
   // The old record goes before any file changes, so it cannot outlive the files it described.
   await rm(join(root, STATE_BASELINE_PATH), { force: true });
   try {
-    for (const row of await readRows(sql)) {
+    for (const row of await readRows(sql, undefined, scope)) {
       const file = join(root, row.path);
       if ((await readText(file)) !== row.content) {
         await writeFileAtomic(file, row.content);
@@ -247,6 +269,7 @@ export async function pushState(
   root: string,
   sql: SqlClient,
   log: Pick<Logger, "info" | "warn"> = { info() {}, warn() {} },
+  scope?: StateScope,
 ): Promise<PushResult> {
   const baseline = await readBaseline(root);
   // Without a pull there is no ancestor to merge from, and the files here may be older than the rows.
@@ -256,12 +279,12 @@ export async function pushState(
   await rm(join(root, STATE_BASELINE_PATH), { force: true });
   const result: PushResult = { written: [], merged: [] };
   const conflicts: { path: string; reason: string }[] = [];
-  for (const path of await localStatePaths(root)) {
+  for (const path of await localStatePaths(root, scope)) {
     const mine = await readText(join(root, path));
     const base = baseline[path];
     if (mine === null || (base !== undefined && sha256(mine) === base.hash)) continue;
     try {
-      const landed = await pushOne(sql, path, mine, base, result);
+      const landed = await pushOne(sql, path, mine, base, result, scope);
       if (landed.content !== mine) await writeFileAtomic(join(root, path), landed.content);
       baseline[path] = baselineOf({ path, ...landed });
     } catch (error) {
@@ -282,6 +305,7 @@ async function pushOne(
   mine: string,
   base: Baseline[string] | undefined,
   result: PushResult,
+  scope?: StateScope,
 ): Promise<{ version: number; content: string }> {
   let content = mine;
   let version: number | null = base?.version ?? null;
@@ -293,7 +317,7 @@ async function pushOne(
       (content === mine ? result.written : result.merged).push(path);
       return { version: landed, content };
     }
-    const [row] = await readRows(sql, [path]);
+    const [row] = await readRows(sql, [path], scope);
     if (row === undefined) {
       // A row removed since the pull must not be put back at a version another checkout may also
       // hold; the store was reset, so the owner pulls and seeds again.

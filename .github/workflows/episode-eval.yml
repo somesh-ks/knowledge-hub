@@ -26,11 +26,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci --ignore-scripts
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Rewrite the latest replay with main's writer prompt and this branch's
         if: github.event_name == 'pull_request'
         env:
@@ -43,9 +44,9 @@ jobs:
           git show origin/main:config/voice.md > "$RUNNER_TEMP/voice.main.md"
           latest=$(ls -d loop/results/replay-*/ | sort -V | tail -1)
           for kind in daily weekly; do
-            npx tsx loop/rewrite.ts "${latest}replay-$kind" "rewrites/before-$kind" \
+            pnpm exec tsx loop/rewrite.ts "${latest}replay-$kind" "rewrites/before-$kind" \
               --prompt packages/engine/src/write/prompt.main.ts --voice "$RUNNER_TEMP/voice.main.md"
-            npx tsx loop/rewrite.ts "${latest}replay-$kind" "rewrites/after-$kind"
+            pnpm exec tsx loop/rewrite.ts "${latest}replay-$kind" "rewrites/after-$kind"
           done
       - name: Eval
         env:
@@ -60,14 +61,14 @@ jobs:
             # earlier replays never change on a pull request, so judging them again bought nothing.
             episodes=(rewrites/*/)
           else
-            npx tsx loop/eval.ts | tee eval.md
+            pnpm exec tsx loop/eval.ts | tee eval.md
             status=${PIPESTATUS[0]}
             # Each loop iteration's replay of October's stories (loop/replay.ts), judged the same way.
             episodes=(loop/results/replay-*/replay-*/)
           fi
           for episode in "${episodes[@]}"; do
             [ -d "$episode" ] || continue
-            npx tsx loop/eval.ts "${episode%/}" | tee -a eval.md
+            pnpm exec tsx loop/eval.ts "${episode%/}" | tee -a eval.md
           done
           cat eval.md >> "$GITHUB_STEP_SUMMARY"
           # The table is the result; a failing metric is a finding, not a broken build.
@@ -80,7 +81,7 @@ jobs:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
         run: |
           for episode in rewrites/after-*/; do
-            [ -d "$episode" ] && npx tsx loop/inspect.ts "${episode%/}" | tee -a inspect.md
+            [ -d "$episode" ] && pnpm exec tsx loop/inspect.ts "${episode%/}" | tee -a inspect.md
           done
       - name: Keep the rewritten episodes for reading
         if: always() && github.event_name == 'pull_request'

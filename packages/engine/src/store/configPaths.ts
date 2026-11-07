@@ -110,6 +110,8 @@ export function readsConfigAtStart(command: string, argv: readonly string[]): bo
  * second pull would write over.
  */
 export function readsStateAtStart(command: string, argv: readonly string[]): boolean {
+  // The audio job reads no config (SEC-03) but pulls its cost rows through its own login.
+  if (command === "publish") return true;
   if (!readsConfigAtStart(command, argv)) return false;
   if (command !== "podcast") return true;
   const at = argv.findIndex((arg) => arg === "--stage" || arg.startsWith("--stage="));

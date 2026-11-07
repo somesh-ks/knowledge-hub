@@ -1,4 +1,4 @@
-import tokens from "../../../tokens/covers.json" with { type: "json" };
+import tokens from "@singularity/design-system/tokens/covers.json" with { type: "json" };
 import { contrastRatio, hexToOklch, mixHex, type Oklch, oklchToHex, parseOklch } from "./color.js";
 import type { Palette, Tone } from "./types.js";
 

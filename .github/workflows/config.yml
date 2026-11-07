@@ -33,15 +33,16 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       # Only the engine's packages: the site's (Astro, React, Playwright) are not needed to run it, and
       # leaving them out takes the install from about 10 seconds to about 4.
       - name: Install
-        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
 
       # The input reaches the command through an environment variable and is quoted in the shell
       # line, never interpolated into it, so its text cannot become shell syntax.
@@ -51,7 +52,7 @@ jobs:
         env:
           OP: ${{ inputs.op }}
         run: |
-          npm run --silent singularity -- config apply --op "$OP" --json | tee "$RUNNER_TEMP/apply.json"
+          pnpm run --silent singularity -- config apply --op "$OP" --json | tee "$RUNNER_TEMP/apply.json"
           echo "topic_id=$(jq -r '.topic_id // empty' "$RUNNER_TEMP/apply.json")" >> "$GITHUB_OUTPUT"
           echo "new_topic=$(jq -r '.new_topic' "$RUNNER_TEMP/apply.json")" >> "$GITHUB_OUTPUT"
 
@@ -65,7 +66,7 @@ jobs:
           TOPIC_ID: ${{ steps.apply.outputs.topic_id }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: npm run --silent singularity -- sources suggest --topic "$TOPIC_ID" --json
+        run: pnpm run --silent singularity -- sources suggest --topic "$TOPIC_ID" --json
 
       - name: Commit
         shell: bash
@@ -75,4 +76,4 @@ jobs:
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
         run: |
           message="$(jq -r '.commit_message' "$RUNNER_TEMP/apply.json")"
-          npm run --silent singularity -- config commit --message "$message" --json
+          pnpm run --silent singularity -- config commit --message "$message" --json

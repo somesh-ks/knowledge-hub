@@ -1,8 +1,8 @@
 ---
-import Button from "../design-system/Button.astro";
-import Field from "../design-system/Field.astro";
-import Icon from "../design-system/Icon.astro";
-import Select from "../design-system/Select.astro";
+import Button from "@singularity/design-system/Button.astro";
+import Field from "@singularity/design-system/Field.astro";
+import Icon from "@singularity/design-system/Icon.astro";
+import Select from "@singularity/design-system/Select.astro";
 import {
   DEFAULTS,
   FORMATS,
@@ -22,7 +22,7 @@ import { storyOptions } from "../lib/storyOptions";
 // build links them before the layout's own stylesheets, so their rules never rely on coming last:
 // where one adjusts a shared rule, it does so with a more specific selector.
 import "../styles/settings.css";
-import "../styles/picker.css";
+import "@singularity/design-system/styles/picker.css";
 import "../styles/create.css";
 
 const { sections, topics: allTopics } = await loadManage();

@@ -1,4 +1,4 @@
-import type { IconName } from "../../../web/src/lib/icons";
+import type { IconName } from "@singularity/design-system/icons";
 
 /**
  * The owner's taste as reusable rules, mined from the design-engineering ledger, the decisions and

@@ -10,6 +10,8 @@
   "include": [
     ".astro/types.d.ts",
     "src",
+    // The design system's components: astro check reads only the files named here (D382 step 4).
+    "../../packages/design-system/src",
     "e2e",
     "scripts",
     "astro.config.mjs",

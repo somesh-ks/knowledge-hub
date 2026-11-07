@@ -60,7 +60,7 @@ export interface CommitAndPushInput {
   /** Injected for tests; defaults to real git in `root`. */
   git?: GitRunner;
   /** Injected for tests; defaults to saving the run state to Postgres when that store is on (D381). */
-  saveState?: (root: string) => Promise<void>;
+  saveState?: (root: string, command: GitCommand) => Promise<void>;
 }
 
 /** `state_store`: the commit is on the remote but the run state did not reach Postgres. */
@@ -166,7 +166,7 @@ export async function commitAndPush(input: CommitAndPushInput): Promise<CommitOu
   // leave a story marked seen in the store with no digest. A failed save is a failed commit, so the
   // run ends red and the caller marks it done as it does for any other push failure.
   try {
-    await (input.saveState ?? saveStateIfOn)(input.root);
+    await (input.saveState ?? saveStateIfOn)(input.root, input.command);
   } catch (error) {
     return {
       status: "push_failed",

@@ -4,7 +4,7 @@
  * costs first load beyond these few lines. A `singularity:sound` event with detail "success" or "failure"
  * asks for the cue of an outcome the screen already states in words (saved, copied, refused).
  */
-import { warmWhenIdle } from "./idle";
+import { warmWhenIdle } from "@singularity/design-system/idle";
 
 export function installUiSound(): void {
   let loaded: Promise<typeof import("../player/sound/uiClicks")> | undefined;

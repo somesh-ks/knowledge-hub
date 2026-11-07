@@ -5,9 +5,10 @@
  * per page (public/sw.js, KEEP_READY); this names what to keep: the core pages, the saved podcasts, the Library's newest and the latest. Online only, at idle, and never on a
  * data saver.
  */
+
+import { whenIdle } from "@singularity/design-system/idle";
 import { isOnline } from "../lib/connectivity";
 import { SAVED_KEY_PREFIX } from "../player/core/saved";
-import { whenIdle } from "./idle";
 
 /** Pages every reader has: Latest, the Library and each Settings page that has no id in its address. */
 export const CORE_PAGES = [

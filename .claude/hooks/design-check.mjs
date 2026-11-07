@@ -8,7 +8,8 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 
-const UI = /^(?:apps\/web\/src\/.*\.(?:css|astro|tsx|ts)|tokens\/.*)$/;
+const UI =
+  /^(?:(?:apps\/web\/src|packages\/design-system\/(?:src|styles))\/.*\.(?:css|astro|tsx|ts)|packages\/design-system\/tokens\/.*)$/;
 
 try {
   const payload = JSON.parse(readFileSync(0, "utf8") || "{}");
@@ -24,7 +25,7 @@ try {
       "vitest",
       "run",
       "apps/web/src/styles/styles.test.ts",
-      "scripts/buildTokens.test.ts",
+      "packages/design-system/scripts/buildTokens.test.ts",
       "--reporter=default",
     ],
     { cwd: root, encoding: "utf8", shell: process.platform === "win32", timeout: 60_000 },

@@ -1,7 +1,7 @@
+import { bannerClass, bannerText } from "@singularity/design-system/banner";
+import { buttonClass } from "@singularity/design-system/button";
 import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { bannerClass, bannerText } from "../design-system/banner";
-import { buttonClass } from "../design-system/button";
 import { noticeAction } from "./core/playerCopy";
 import { usePlayerState } from "./hooks/usePlayer";
 import Icon from "./ui/LazyIcon";

@@ -37,7 +37,7 @@ let fingerprint: Promise<string> | undefined;
 function currentFingerprint(root: string): Promise<string> {
   fingerprint ??= rendererFingerprint(
     [join(root, "packages", "cover", "src"), join(root, "packages", "cover", "fonts")],
-    [join(root, "tokens", "covers.json")],
+    [join(root, "packages", "design-system", "tokens", "covers.json")],
   );
   return fingerprint;
 }

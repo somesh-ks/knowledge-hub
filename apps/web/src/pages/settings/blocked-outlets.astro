@@ -1,11 +1,11 @@
 ---
+import Button from "@singularity/design-system/Button.astro";
+import Icon from "@singularity/design-system/Icon.astro";
+import RowExit from "@singularity/design-system/RowExit.astro";
+import Sheet from "@singularity/design-system/Sheet.astro";
 import EmptyArt from "../../components/EmptyArt.astro";
 import ManageChrome from "../../components/ManageChrome.astro";
 import SettingsHead from "../../components/SettingsHead.astro";
-import Button from "../../design-system/Button.astro";
-import Icon from "../../design-system/Icon.astro";
-import RowExit from "../../design-system/RowExit.astro";
-import Sheet from "../../design-system/Sheet.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { blockedDomainOf, outletsSummary } from "../../lib/blockedOutlets";
 import { loadBlockedDomains } from "../../lib/blockedProfile";
@@ -220,7 +220,7 @@ const offers = (await loadSourceCatalog()).flatMap((offer) => {
 </BaseLayout>
 
 <script>
-  import { whenIdle } from "../../scripts/idle";
+  import { whenIdle } from "@singularity/design-system/idle";
 
   // The editor is not in the page's first load: until it mounts, the list reads as it is and the
   // field and buttons are there but do nothing. It loads at idle, never on a first press.

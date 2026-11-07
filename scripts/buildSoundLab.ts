@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { buildTokensCss } from "./buildTokens.js";
+import { buildTokensCss } from "@singularity/design-system/scripts/buildTokens";
 import {
   bundleScript,
   fillTemplate,
@@ -23,7 +23,7 @@ async function main(): Promise<void> {
     THEME_DARK: colors.dark,
     FONTS: fontsCss(),
     TOKENS: buildTokensCss(),
-    FOUNDATIONS: readText("apps/web/src/styles/foundations.css"),
+    FOUNDATIONS: readText("packages/design-system/styles/foundations.css"),
     PROTOTYPE: readText("scripts/prototype/ui-prototype.css"),
     LAB: readText("scripts/soundLab/sound-lab.css"),
     MARK: MARK_SVG,

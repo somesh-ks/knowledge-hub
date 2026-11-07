@@ -7,12 +7,19 @@ name: seed
 # replace rewrites rows that differ from the committed files: the step before switch-on (runbook
 # 11.1) for a store seeded earlier. The engine refuses it while SINGULARITY_CONFIG_STORE is on, since
 # the app's edits then live only in the database; this workflow has no way to force it.
+#
+# With `state` on it also adds a row for each state/*.json on main that has none (D381, runbook
+# 14.1). That never replaces a row, so it is safe to run again.
 
 on:
   workflow_dispatch:
     inputs:
       replace:
         description: "Rewrite rows that differ from the committed files (before switch-on only)"
+        type: boolean
+        default: false
+      state:
+        description: "Also seed the run state (D381, runbook 14.1): one row per state/*.json on main"
         type: boolean
         default: false
       dry_run:
@@ -36,13 +43,14 @@ jobs:
         with:
           ref: main
 
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          cache: pnpm
 
       - name: Install
-        run: npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
 
       - name: Seed
         shell: bash
@@ -56,4 +64,19 @@ jobs:
           seed_args=(--json)
           [ "$REPLACE" = "true" ] && seed_args+=(--replace)
           [ "$DRY" = "true" ] && seed_args+=(--dry-run)
-          npm run --silent singularity -- config seed "${seed_args[@]}"
+          pnpm run --silent singularity -- config seed "${seed_args[@]}"
+
+      # The run state (D381): one row per state/*.json on main. Run it just AFTER setting the
+      # SINGULARITY_STATE_STORE variable, with no run under way. Before it, a run that commits between
+      # the seed and the switch leaves the rows one run behind its files and the first pull writes
+      # them over, silently; after it, a run that overlaps the seed ends red on a conflict instead.
+      - name: Seed the run state
+        if: inputs.state
+        shell: bash
+        env:
+          DRY: ${{ inputs.dry_run }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          state_args=()
+          [ "$DRY" = "true" ] && state_args+=(--dry-run)
+          pnpm run --silent singularity -- state seed "${state_args[@]}"

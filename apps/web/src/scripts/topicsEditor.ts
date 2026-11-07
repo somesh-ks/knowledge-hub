@@ -13,8 +13,8 @@
 
 import type { SourceFormat } from "@singularity/core";
 import { topicEmoji } from "@singularity/core/topicEmoji";
-import { shownText, showText } from "../design-system/flag";
-import { rowExitClass } from "../design-system/rowExit";
+import { shownText, showText } from "@singularity/design-system/flag";
+import { rowExitClass } from "@singularity/design-system/rowExit";
 import { pickEmoji } from "../lib/pickEmoji";
 import { readableUrl } from "../lib/readableUrl";
 import { sourcesSummary } from "../lib/settingsSummary";

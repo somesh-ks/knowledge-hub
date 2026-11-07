@@ -8,7 +8,9 @@ const FALLBACK_PALETTE = "dusk";
 /** Palette ids from tokens/covers.json: keys under "palettes", or the top-level non-$ keys. */
 export async function loadCoverPalettes(root: string): Promise<string[]> {
   try {
-    const raw: unknown = JSON.parse(await readFile(join(root, "tokens", "covers.json"), "utf8"));
+    const raw: unknown = JSON.parse(
+      await readFile(join(root, "packages", "design-system", "tokens", "covers.json"), "utf8"),
+    );
     if (typeof raw !== "object" || raw === null) return [FALLBACK_PALETTE];
     const record = raw as Record<string, unknown>;
     const container =

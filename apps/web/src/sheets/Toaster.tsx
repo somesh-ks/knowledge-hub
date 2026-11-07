@@ -1,5 +1,11 @@
+import {
+  flagBadgeClass,
+  flagClass,
+  flagParts,
+  flagSrc,
+  hasFlagArt,
+} from "@singularity/design-system/flag";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { flagBadgeClass, flagClass, flagParts, flagSrc, hasFlagArt } from "../design-system/flag";
 import { swipeLeaves } from "../lib/swipeAway";
 import { createVelocityTracker, TAP_SLOP_PX } from "../player/core/gestureMath";
 import Icon from "../player/ui/Icon";

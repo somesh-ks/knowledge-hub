@@ -3,6 +3,8 @@
  * is in the HTML, newest first. The script only hides, reorders and counts, and keeps each month's
  * heading before the first card of its month on show.
  */
+
+import { whenIdle } from "@singularity/design-system/idle";
 import {
   type CardData,
   chipFilter,
@@ -26,8 +28,6 @@ import {
   storyHeadline,
   textHasWords,
 } from "../lib/library";
-
-import { whenIdle } from "./idle";
 import { installMonthBands } from "./libraryMonths";
 import { applyView, libraryRoot, storedView, VIEW_KEY } from "./libraryView";
 

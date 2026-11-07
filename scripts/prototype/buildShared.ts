@@ -5,8 +5,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { hexFor, loadTokens } from "@singularity/design-system/scripts/buildTokens";
 import { build } from "esbuild";
-import { hexFor, loadTokens } from "../buildTokens.js";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -41,7 +41,7 @@ export function fontsCss(): string {
   return fontFace(
     "Google Sans Flex Variable",
     "400 700",
-    "apps/web/src/assets/fonts/google-sans-flex-latin-wght-normal.woff2",
+    "packages/design-system/fonts/google-sans-flex-latin-wght-normal.woff2",
   );
 }
 

@@ -5,7 +5,7 @@
  * Enter picks, Escape closes (the popover's own). Picking calls back with the emoji and closes.
  */
 
-import { showText } from "../design-system/flag";
+import { showText } from "@singularity/design-system/flag";
 import { type EmojiGroup, type EmojiItem, searchEmoji, suggestedEmoji } from "../lib/emojiSearch";
 import { fitAboveKeyboard } from "./keyboardFit";
 import { element } from "./topicsView";
