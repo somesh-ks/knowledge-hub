@@ -74,14 +74,18 @@ const MAY_CHANGE = [
   // The cover is a shared component outside design-system/; its corner rule (D268) follows the
   // cover-radius tokens, so a token change that needs a cap changes this stylesheet with it.
   "apps/web/src/styles/cover.css",
-  // Stylesheets the token build's test holds to defined tokens (buildTokens.test.ts): a token the
-  // system removes changes them with it (D378 folded --color-on-surface-subtle).
+  // Stylesheets held to defined tokens (scripts/houseRules.test.ts): a token the system removes
+  // changes them with it (D378 folded --color-on-surface-subtle).
   "scripts/prototype/ui-prototype.css",
   "scripts/soundLab/sound-lab.css",
   "scripts/gate.mjs",
   "docs/state.md",
-  // The Icon moved into the system (D266); its old path is deleted.
+  // The Icon moved into the system (D266), and the BrandMark (D382 step 4c); their old paths are deleted.
   "apps/web/src/components/Icon.astro",
+  "apps/web/src/components/BrandMark.astro",
+  // The checks of how the apps draw the system, and the writer that passes them into the system file:
+  // they read the apps, so they live outside the package (D382 step 4c).
+  "scripts/system",
   "docs/learnings.md",
   "scripts/designSystemGate",
   ".github/workflows/design-system.yml",
@@ -104,14 +108,14 @@ export const SYSTEM_NAMES =
 const PACKAGE_DIR = "packages/design-system/";
 const SOURCE_FILE = /\.(?:ts|tsx|astro|mjs|js)$/;
 const IMPORT = /(?:from|import)\s*\(?\s*["']([^"'\s]+)["']/g;
-/** The workspace packages the system may name: the one it depends on, and itself. */
-const WORKSPACE_ALLOWED = ["@singularity/core", "@singularity/design-system"];
+/** The workspace package the system may name: itself. It depends on none (D382 step 4c). */
+const WORKSPACE_ALLOWED = ["@singularity/design-system"];
 
 /**
  * The design system must not import app code, so it can leave for a repository of its own (D382,
  * step 6 filters the package into one). Every file in the package (src/ and scripts/) may import
- * only what stays inside it by a relative path, or a package by name: node:, a third-party package,
- * or @singularity/core. `sources` is each file's repo-relative path and text; the result names each
+ * only what stays inside it by a relative path, or a package by name: node: or a third-party
+ * package, never another workspace package. `sources` is each file's repo-relative path and text; the result names each
  * import that reaches out, as "file: specifier".
  */
 export function boundaryProblems(sources) {
@@ -150,8 +154,8 @@ const startsWithAny = (file, prefixes) => prefixes.some((prefix) => file.startsW
  * The lists that excuse code from a design-system check, by the file that holds them. Any pull request
  * may shrink one; an entry added is a design decision (a control drawn by hand, a page bending a
  * component, an outlined control), so it needs the label and the owner's merge (2026-11-04: any pull
- * request could add a bespoke class and silence the button rule). The lists in design-system/
- * (NOT_YET_COMPONENTS) are not named here: every change there is a system change already.
+ * request could add a bespoke class and silence the button rule). A list inside the package would
+ * not be named here: every change there is a system change already.
  */
 export const ALLOWLISTS = {
   "apps/web/src/styles/styles.test.ts": [
@@ -160,6 +164,9 @@ export const ALLOWLISTS = {
     "OUTLINED_CONTROLS",
     "PAGE_OVERRIDES",
   ],
+  // The controls still written by hand and the popovers built outside Menu (D382 step 4c moved them
+  // out of the package, beside the apps they read).
+  "scripts/systemUse.test.ts": ["NOT_YET_COMPONENTS", "BUILT_OWN"],
 };
 
 /**

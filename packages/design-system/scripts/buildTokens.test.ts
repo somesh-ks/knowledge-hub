@@ -793,11 +793,6 @@ describe("style sources", () => {
   it("keeps foundations.css on token references only", () => {
     checkSource("styles/foundations.css", { strictLiterals: true });
   });
-
-  it("keeps the prototype stylesheet on defined tokens", () => {
-    checkSource("../../scripts/prototype/ui-prototype.css", { strictLiterals: false });
-    checkSource("../../scripts/soundLab/sound-lab.css", { strictLiterals: false });
-  });
 });
 
 describe("styles", () => {

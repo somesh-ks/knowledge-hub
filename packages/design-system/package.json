@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "build": "tsx scripts/buildTokens.ts",
+    "test": "vitest run"
+  },
   "exports": {
     "./styles/*": "./styles/*",
     "./tokens/*": "./tokens/*",
@@ -12,10 +16,9 @@
     "./*.astro": "./src/*.astro",
     "./*": "./src/*.ts"
   },
-  "dependencies": {
-    "@singularity/core": "workspace:*"
-  },
   "devDependencies": {
-    "astro": "^7.4.4"
+    "astro": "^7.4.4",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.5"
   }
 }

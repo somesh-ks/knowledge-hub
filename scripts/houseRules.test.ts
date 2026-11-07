@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildCss, loadTokens } from "@singularity/design-system/scripts/buildTokens";
 import { describe, expect, it } from "vitest";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -41,4 +42,35 @@ describe("house rules for authored files", () => {
     }
     expect(offenders).toEqual([]);
   });
+});
+
+// The prototype and the sound lab draw with the system's tokens from outside its package, so a token
+// the system removes is caught here (D378 folded --color-on-surface-subtle), not in the package.
+describe("the prototype stylesheets", () => {
+  const foundations = readFileSync(
+    resolve(ROOT, "packages/design-system/styles/foundations.css"),
+    "utf8",
+  );
+  const defined = new Set(
+    [...`${buildCss(loadTokens())}\n${foundations}`.matchAll(/(--[\w-]+)\s*:/g)].map(
+      (match) => match[1] ?? "",
+    ),
+  );
+
+  it.each(["scripts/prototype/ui-prototype.css", "scripts/soundLab/sound-lab.css"])(
+    "keeps %s on defined tokens",
+    (file) => {
+      const source = readFileSync(resolve(ROOT, file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      const local = new Set(defined);
+      for (const match of source.matchAll(/(--[\w-]+)\s*:/g)) local.add(match[1] ?? "");
+      // A reference with a fallback, such as var(--i, 0), is an input set by the caller.
+      for (const match of source.matchAll(/var\(\s*(--[\w-]+)\s*\)/g)) {
+        expect(local.has(match[1] ?? ""), `${file}: ${match[1]} is not defined`).toBe(true);
+      }
+      expect(source, `${file}: !important`).not.toMatch(/!important/);
+      expect(source, `${file}: transition: all`).not.toMatch(/transition:\s*all\b/);
+      expect(source, `${file}: scale(0)`).not.toMatch(/scale\(\s*0\s*[),]/);
+      expect(source, `${file}: ease-in`).not.toMatch(/\bease-in\b(?!-out)/);
+    },
+  );
 });
