@@ -1,9 +1,9 @@
 import { Field } from "@base-ui/react/field";
+import { buttonClass } from "@singularity/design-system/button";
+import { fieldClass } from "@singularity/design-system/field";
+import { selectClass } from "@singularity/design-system/select";
+import { installSelectSheet } from "@singularity/design-system/selectSheet";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { buttonClass } from "../design-system/button";
-import { fieldClass } from "../design-system/field";
-import { selectClass } from "../design-system/select";
-import { installSelectSheet } from "../design-system/selectSheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { createCommentAsker } from "../lib/regenAsk";
 import {
@@ -22,7 +22,7 @@ import { cueForGenerate } from "../player/sound/soundMap";
 import Icon from "../player/ui/LazyIcon";
 import { MESSAGES, startGenerate } from "./generate/generateClient";
 import SheetFrame from "./SheetFrame";
-import "../styles/field.css";
+import "@singularity/design-system/styles/field.css";
 
 /** The same cap as an episode's Regenerate feedback (server/podcast.ts). */
 const FEEDBACK_MAX = 500;

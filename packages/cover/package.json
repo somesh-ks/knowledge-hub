@@ -8,8 +8,9 @@
     "./style": "./src/style.ts"
   },
   "dependencies": {
-    "@singularity/core": "workspace:*",
     "@resvg/resvg-js": "^2.6.2",
+    "@singularity/core": "workspace:*",
+    "@singularity/design-system": "workspace:*",
     "fontkitten": "^1.0.3"
   }
 }

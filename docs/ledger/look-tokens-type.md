@@ -4,7 +4,7 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
 
 ## Look, tokens and type
 - **Look.** Hand-written CSS from DTCG tokens, Base UI for accessible parts; Tailwind and shadcn rejected as a templated look (D4). The first ask was "a light ui library to keep things elegant and high quality" (2026-10-05).
-  - Pipeline: `tokens/tokens.json` to `scripts/buildTokens.ts` to the generated `styles/tokens.css`.
+  - Pipeline: `packages/design-system/tokens/tokens.json` to `packages/design-system/scripts/buildTokens.ts` to the generated `styles/tokens.css`.
   - Tests check token drift, tiers and contrast. Tokens for type, colour and spacing were an explicit ask; 18 raw values were tokenised in one pass (2026-10-08).
   - The first identity (2026-10-05) was a reading page built as the audio timeline: a vertical rail with a node per story that filled while playing, Schibsted Grotesk with Literata, a Lingonberry accent, no cards and no hairlines. It gave way to the Google Podcasts redesign (D31), then to Material tonal surfaces and Google Sans Flex (D72). The rail survives only in the Generate step list.
 - **Tonal language** (D72, owner: "a real Google app"):

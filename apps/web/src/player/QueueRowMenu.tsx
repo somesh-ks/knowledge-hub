@@ -1,11 +1,4 @@
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  type MouseEvent,
-  type ToggleEvent,
-  useState,
-} from "react";
-import { glowFavorite } from "../design-system/glow";
+import { glowFavorite } from "@singularity/design-system/glow";
 import {
   MENU_TILES_MAX,
   menuBodyClass,
@@ -13,13 +6,20 @@ import {
   menuItemClass,
   menuListClass,
   menuTilesClass,
-} from "../design-system/menu";
+} from "@singularity/design-system/menu";
 import {
   sheetHeadClass,
   sheetHeadingClass,
   sheetSubtitleClass,
   sheetTitleClass,
-} from "../design-system/sheet";
+} from "@singularity/design-system/sheet";
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ToggleEvent,
+  useState,
+} from "react";
 import { downloadFailure } from "../lib/downloadCopy";
 import { inPodcastOrder, type PodcastAction } from "../lib/podcastActions";
 import { sendToast } from "../scripts/toastEvent";

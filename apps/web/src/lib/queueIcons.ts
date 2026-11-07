@@ -6,7 +6,7 @@
  * that, since Cancelled had been drawn with Close). queueIcons.test.ts holds the two lists apart and
  * e2e/queue.spec.ts checks the rendered rows.
  */
-import type { IconName } from "../design-system/icons";
+import type { IconName } from "@singularity/design-system/icons";
 
 /** How a run ended, as the head and a row's lead show it. */
 export const QUEUE_STATUS_ICONS = {

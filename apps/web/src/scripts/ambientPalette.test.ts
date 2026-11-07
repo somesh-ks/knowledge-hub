@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import tokens from "@singularity/design-system/tokens/tokens.json" with { type: "json" };
 import { describe, expect, it } from "vitest";
 import { clampToGamut, contrastRatio, oklchToHex } from "../../../../packages/cover/src/color";
 import { oklchStringToRgb, toHex } from "../../../../scripts/colorMath";
-import tokens from "../../../../tokens/tokens.json" with { type: "json" };
 import { backingSize, blendTint, MAX_SIDE, paletteUniforms, shouldAnimate } from "./ambientPalette";
 import { DARK, LIGHT, lightColors, tint } from "./ambientTint";
 
@@ -66,7 +66,10 @@ describe("ambient light contrast", () => {
   }
 
   it("gives the play chip an opaque container fill, where its accent words keep their contrast", () => {
-    const chip = readFileSync(join(import.meta.dirname, "..", "styles", "buttons.css"), "utf8");
+    const chip = readFileSync(
+      join(import.meta.dirname, "../../../../packages/design-system/styles/buttons.css"),
+      "utf8",
+    );
     expect(chip.replace(/\s+/g, " ")).toMatch(/\.chip \{[^}]*background: var\(--chip-bg\);/);
     for (const mode of ["light", "dark"] as const) {
       const container = colorOf("semantic.color.surface-container", mode);

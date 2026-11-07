@@ -1,4 +1,4 @@
-import type { IconName } from "../../../web/src/design-system/icons";
+import type { IconName } from "@singularity/design-system/icons";
 
 /** The command center's sections, in nav order. `hint` is the line under the name on the overview. */
 export interface Section {

@@ -18,8 +18,13 @@
  * The profile's big avatar (data-account-still) mirrors none of the app's states, idles or taps: it plays only
  * the show of a new pick.
  */
-import { AVATAR_SHAPES, avatarMarkup, moodShapes, tokenWords } from "../design-system/avatar";
-import { warmWhenIdle } from "../design-system/idle";
+import {
+  AVATAR_SHAPES,
+  avatarMarkup,
+  moodShapes,
+  tokenWords,
+} from "@singularity/design-system/avatar";
+import { warmWhenIdle } from "@singularity/design-system/idle";
 import { getPreferences } from "../player/core/preferences";
 import { morphPath, pickReaction } from "./avatarReactions";
 import { rootStyle, tokenMs } from "./rootTokens";

@@ -36,6 +36,11 @@ describe("dsMigrate", () => {
         'import raw from "@singularity/design-system/tokens/system.json?raw";',
       ].join("\n"),
     );
+    // A script names a moved .ts module by its .js output name.
+    const script = 'import { loadTokens } from "./buildTokens.js";';
+    expect(rewriteSource(script, "scripts/buildPrototype.ts", exists)).toBe(
+      'import { loadTokens } from "@singularity/design-system/scripts/buildTokens";',
+    );
   });
 
   it("keeps a moved file's imports relative, and repoints the ones that left with it", () => {

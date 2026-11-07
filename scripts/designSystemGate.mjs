@@ -20,42 +20,11 @@ export const MIGRATION_LABEL = "ds-migration";
 
 /** What the owner reviews: the components, the stylesheets they share, the tokens and the guide. */
 export const SYSTEM_PATHS = [
-  "apps/web/src/design-system/",
-  "apps/web/src/styles/buttons.css",
-  "apps/web/src/styles/icon.css",
-  "apps/web/src/styles/badge.css",
-  "apps/web/src/styles/flag.css",
-  "apps/web/src/styles/code.css",
-  "apps/web/src/styles/glow.css",
-  // The type families the tokens name, and their files (Google Sans Code for the Code snippet).
-  "apps/web/src/styles/fonts.css",
-  "apps/web/src/assets/fonts/",
-  // The Flag's art (D367), one Flagpack file per country.
-  // The prefix also takes the retired sprite, public/flags.svg.
-  "apps/web/public/flags",
-  "apps/web/src/styles/switch.css",
-  "apps/web/src/styles/slider.css",
-  "apps/web/src/styles/avatar.css",
-  "apps/web/src/styles/row-exit.css",
-  "apps/web/src/styles/field.css",
-  "apps/web/src/styles/select.css",
-  "apps/web/src/styles/picker.css",
-  "apps/web/src/styles/wheel.css",
-  "apps/web/src/styles/ripple.css",
-  "apps/web/src/styles/menu.css",
-  "apps/web/src/styles/banner.css",
-  "apps/web/src/styles/dialog.css",
-  "apps/web/src/styles/sheet.css",
-  "apps/web/src/styles/drawer.css",
-  "apps/web/src/styles/primitives.css",
-  "apps/web/src/styles/foundations.css",
-  "apps/web/src/styles/tokens.css",
-  "tokens/",
+  // The package (D382 step 4): the components and their behaviour (src/), the stylesheets they share
+  // (styles/), the type families' files (fonts/), the Flag's art (flags/, D367), the tokens, and the
+  // token and system generators (scripts/).
+  "packages/design-system/",
   "apps/design/",
-  "scripts/system/",
-  "scripts/colorRamp.ts",
-  "scripts/styleRecipe.ts",
-  "scripts/styleRecipe.test.ts",
   ".github/CODEOWNERS",
   ".claude/skills/feature/references/controls-guide.md",
 ];
@@ -66,6 +35,7 @@ export const SYSTEM_PATHS = [
  * every app at once, so they are not system work, and a design-system pull request may still carry them.
  */
 const WORKSPACE_PLUMBING = [
+  "packages/design-system/package.json",
   "apps/design/package.json",
   "apps/design/vercel.json",
   "apps/design/ignore-build.sh",
@@ -99,6 +69,8 @@ const MAY_CHANGE = [
   "apps/web/src/player/ui/iconPathsLazy.tsx",
   "scripts/buildGlyphs.ts",
   "scripts/buildGlyphs.test.ts",
+  // The codemod that moved the system into its package, and its test.
+  "scripts/dsMigrate",
   // The cover is a shared component outside design-system/; its corner rule (D268) follows the
   // cover-radius tokens, so a token change that needs a cap changes this stylesheet with it.
   "apps/web/src/styles/cover.css",
@@ -112,7 +84,6 @@ const MAY_CHANGE = [
   "apps/web/src/components/Icon.astro",
   "docs/learnings.md",
   "scripts/designSystemGate",
-  "scripts/buildTokens",
   ".github/workflows/design-system.yml",
   ".claude/skills/feature/",
   "AGENTS.md",
@@ -130,33 +101,27 @@ const CALL_SITES = ["apps/web/src/", "apps/web/e2e/", "apps/admin/src/"];
 export const SYSTEM_NAMES =
   /\bdesign-system\/|--ghost-(?:accent-)?(?:hover|pressed)\b|\btabs-bar\b|\bButton\b|buttonClass|<(?:Lazy)?Icon(?![\w.])|<Badge(?![\w.])|<Flag(?![\w.])|<Code(?![\w.])|codeSnippetHtml|wireCodeCopy|styles\/code\.css|glowFavorite|--radius-round\b|styles\/glow\.css|flagNode|flagParts|showText|shownText|FLAG_REGIONS|flagSymbolId|styles\/flag\.css|<RowExit(?![\w.])|rowExitClass|<Avatar(?![\w.])|avatarMarkup|avatarClass|PlayPauseIcons|badgeClass|badge-label|iconClass|iconHtml|icon-glyph|text-(?:display|title|heading)\b|button-(?:filled|tonal|text|danger)|\bbtn\b|btn-primary|btn-secondary|confirm-delete|\bSwitch\b|\bSlider\b|switchClass|sliderClass|\.(?:switch|slider)-input\b|settings-switch|settings-range|speed-slider|<Field(?![\w.])|fieldClass|field-input|manage-input|sheet-input|<Select(?![\w.])|selectClass|selectSheet|data-select-sheet|select-(?:outlined|tonal)|manage-select|sort-field|create-select|styles\/(?:menu|select|sheet|drawer)\.css|data-sheet=|MENU_SELECTORS|<Menu(?:Item)?(?![\w.])|menuItemClass|menuListClass|menu-(?:list|item)|hero-menu-(?:list|item|delete)|<LibraryItemMenu(?![\w.])|sheetHeadHtml|<Ripple(?![\w.])|installRipple|data-ripple|<Banner(?![\w.])|bannerClass|bannerText|player-notice|<Dialog(?:Actions)?(?![\w.])|dialogClass|dialogActionsClass|dialogBodyClass|DIALOG_SELECTOR|confirm-(?:dialog|form|actions)|<DialogTitle|dialogTitleClass|<Sheet(?![\w.])|sheet(?:Body|Head|Title)?Class|(?:CREATE_|PANEL_)?SHEET_SELECTOR|create-sheet(?:-head|-body)?\b|drawer(?:Scrim|Viewport|Popup|Panel|Head)Class|sheet-(?:scrim|viewport|popup|panel)/;
 
-const SYSTEM_DIR = "apps/web/src/design-system/";
+const SYSTEM_DIR = "packages/design-system/src/";
+const PACKAGE_DIR = "packages/design-system/";
 const SOURCE_FILE = /\.(?:ts|tsx|astro|mjs|js)$/;
 const RELATIVE_IMPORT = /(?:from|import)\s*\(?\s*["'](\.{1,2}\/[^"']*)["']/g;
 
 /**
- * The design system must not import app code, so it can be lifted into a package of its own
- * (repo plan, step 3). A relative import that leaves design-system/ may reach only what the system
- * owns: the stylesheets, fonts and flags in SYSTEM_PATHS, and tokens/. `sources` is each file's
- * repo-relative path and text; the result names each import that reaches out, as "file: specifier".
+ * The design system must not import app code, so it can leave for a repository of its own (D382). A
+ * relative import in its components (src/) may reach only its own package: its stylesheets, fonts,
+ * flags and tokens. `sources` is each file's repo-relative path and text; the result names each
+ * import that reaches out, as "file: specifier".
  */
 export function boundaryProblems(sources) {
-  const owned = SYSTEM_PATHS.filter(
-    (path) => path !== SYSTEM_DIR && (path.startsWith("apps/web/") || path.startsWith("tokens/")),
-  );
   return sources.flatMap(({ file, text }) =>
     [...text.matchAll(RELATIVE_IMPORT)].flatMap(([, specifier]) => {
       const target = posix.join(posix.dirname(file), specifier.replace(/[?#].*$/, ""));
-      // A folder owns what is under it, a file only itself (icon.css owns no icon.css.ts); the flags
-      // prefix also takes its sprite.
-      const owns = (path) =>
-        path.endsWith("/") || path.endsWith("/flags") ? target.startsWith(path) : target === path;
-      return target.startsWith(SYSTEM_DIR) || owned.some(owns) ? [] : [`${file}: ${specifier}`];
+      return target.startsWith(PACKAGE_DIR) ? [] : [`${file}: ${specifier}`];
     }),
   );
 }
 
-/** Every source file under design-system/, as boundaryProblems reads them. */
+/** Every source file in the package's src/, as boundaryProblems reads them. */
 export function systemSources(root) {
   const found = [];
   const walk = (dir) => {
@@ -336,7 +301,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const problems = checkDesignSystemPr({ files, labels, namesSystem, added, frozenBy });
   for (const reach of boundaryProblems(systemSources(process.cwd()))) {
     problems.push(
-      `${reach} leaves design-system/ for app code. The system imports only its own files, its stylesheets and tokens/: move the module into design-system/, or pass the value in as a prop.`,
+      `${reach} leaves the design system's package for app code. The system imports only its own files: move the module into packages/design-system/, or pass the value in as a prop.`,
     );
   }
   for (const problem of problems) console.log(`::error::${problem}`);

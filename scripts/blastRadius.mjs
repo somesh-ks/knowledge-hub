@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 
 const SHARED_RULES = [
   {
-    pattern: /^tokens\//,
+    pattern: /^packages\/design-system\/tokens\//,
     risk: "HIGH",
     surface: "Design Tokens (all pages: color, typography, spacing, elevation)",
     checks: [
@@ -17,7 +17,7 @@ const SHARED_RULES = [
   },
   {
     pattern:
-      /^apps\/web\/src\/styles\/(?:tokens|primitives|buttons|shell|foundations|player|sheets)\.css$/,
+      /^(?:packages\/design-system\/styles\/(?:tokens|primitives|buttons|foundations)|apps\/web\/src\/styles\/(?:shell|player|sheets))\.css$/,
     risk: "HIGH",
     surface: "Shared CSS Primitives (buttons, chips, navigation, sheets across all pages)",
     checks: [
@@ -63,10 +63,10 @@ const SHARED_RULES = [
     ],
   },
   {
-    pattern: /^apps\/web\/src\/design-system\/(?:sheetHead|icons)\.ts$/,
+    pattern: /^packages\/design-system\/src\/(?:sheetHead|icons)\.ts$/,
     risk: "MEDIUM",
     surface: "Shared HTML Templates & Glyphs (sheet headers, menu items, action rows)",
-    checks: ["pnpm exec vitest run apps/web/src/design-system/sheetHead.test.ts"],
+    checks: ["pnpm exec vitest run packages/design-system/src/sheetHead.test.ts"],
   },
   {
     pattern: /^docs\//,

@@ -80,10 +80,13 @@ const SCRIPT_EXTENSIONS = [".ts", ".tsx", ".mts", ".js", ".mjs", ".astro"];
 
 /** The file a specifier names, as a bundler finds it: as written, .js for .ts, or an added extension. */
 export function resolveFile(target, exists) {
-  if (exists(target)) return target;
+  return candidates(target).find(exists);
+}
+
+/** The files a specifier may name, in the order a bundler tries them. */
+function candidates(target) {
   const bare = target.replace(/\.(?:js|mjs)$/, "");
-  for (const extension of SCRIPT_EXTENSIONS) if (exists(bare + extension)) return bare + extension;
-  return undefined;
+  return [target, ...SCRIPT_EXTENSIONS.map((extension) => bare + extension)];
 }
 
 /** The package specifier for a file inside the package, as its `exports` map serves it. */
@@ -128,9 +131,11 @@ export function rewriteSource(text, file, exists, { packageImports = true } = {}
     // Where the import pointed before the move, and where that file is now.
     const old = posix.join(posix.dirname(was), path);
     if (old.startsWith("..")) return whole;
-    const target = resolveFile(movedPath(old), exists);
-    if (!target || target === now) return whole;
-    if (now && movedPath(old) === old) return whole;
+    const named = candidates(old).find((candidate) => exists(movedPath(candidate)));
+    if (!named) return whole;
+    const target = movedPath(named);
+    // A target that stayed put and an import that resolves: nothing moved under it.
+    if (target === now || (now && target === named)) return whole;
     const toPackage = target.startsWith(PACKAGE) && !file.startsWith(PACKAGE);
     const wanted =
       toPackage && packageImports && !lead.startsWith("new URL") && !lead.startsWith("url(")
@@ -141,7 +146,9 @@ export function rewriteSource(text, file, exists, { packageImports = true } = {}
 }
 
 const SOURCE = /\.(?:ts|tsx|mts|js|mjs|astro|css)$/;
-const SKIP = /^(?:Digests|state|Podcasts|Pools)\/|(?:^|\/)(?:node_modules|dist|\.astro|\.vercel)\//;
+// Its own test holds old imports as fixtures.
+const SKIP =
+  /^(?:Digests|state|Podcasts|Pools)\/|^scripts\/dsMigrate\.|(?:^|\/)(?:node_modules|dist|\.astro|\.vercel)\//;
 
 function run({ root, dry }) {
   const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" });

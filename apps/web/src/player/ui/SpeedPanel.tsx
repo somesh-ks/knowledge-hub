@@ -1,6 +1,6 @@
+import { sliderClass, sliderWaveFieldClass } from "@singularity/design-system/slider";
 import type { CSSProperties } from "react";
-import { sliderClass, sliderWaveFieldClass } from "../../design-system/slider";
-import "../../styles/slider.css";
+import "@singularity/design-system/styles/slider.css";
 import "../../styles/speed-panel.css";
 import { MAX_PLAYBACK_RATE, MIN_PLAYBACK_RATE, PLAYBACK_RATE_STEP } from "../core/playerTypes";
 import { rateFace, rateLabel } from "../rateLabels";

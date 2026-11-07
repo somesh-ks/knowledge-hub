@@ -1,5 +1,13 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import react from "@astrojs/react";
@@ -115,6 +123,25 @@ function preloadPageModules() {
   };
 }
 
+/**
+ * The Flag's art lives in the design system (packages/design-system/flags, D367) and is served at
+ * /flags/<region>.svg. Astro has one public folder, so the art is copied into public/flags (ignored by
+ * git) before dev or a build starts, and the URLs stay what flagSrc() writes.
+ */
+function serveSystemFlags() {
+  return {
+    name: "singularity-system-flags",
+    hooks: {
+      "astro:config:setup": ({ config }) => {
+        const from = fileURLToPath(new URL("../../packages/design-system/flags", import.meta.url));
+        const to = join(fileURLToPath(config.publicDir), "flags");
+        rmSync(to, { recursive: true, force: true });
+        cpSync(from, to, { recursive: true });
+      },
+    },
+  };
+}
+
 /** `client:wake`: an island that hydrates when the page wakes it (src/lib/wakeDirective.ts). */
 function wakeDirective() {
   return {
@@ -154,7 +181,7 @@ function stubApiRoutesForStaticBuild() {
 // core package that marks the repository root. Nothing imports them, so the function would not carry
 // them, and a missing config file reads as empty: a digest no settings answer matches, with no error.
 const FILES_PAGES_READ = [
-  "./src/styles/tokens.css",
+  "../../packages/design-system/styles/tokens.css",
   "../../packages/core/package.json",
   // The covers drawn on request (D256) load their fonts from the function's own copy of these.
   ...["Regular", "Medium", "Bold", "Black"].map(
@@ -190,6 +217,7 @@ export default defineConfig({
     react(),
     wakeDirective(),
     preloadPageModules(),
+    serveSystemFlags(),
     ...(staticOnly ? [stubApiRoutesForStaticBuild()] : []),
   ],
   // `true` keeps single spaces between inline elements, which the default "jsx" mode would strip.

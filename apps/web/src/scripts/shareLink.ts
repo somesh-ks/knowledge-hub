@@ -1,4 +1,4 @@
-import { whenIdle } from "../design-system/idle";
+import { whenIdle } from "@singularity/design-system/idle";
 import { sharedItem, sharedUrl, track } from "../lib/analytics";
 import { isOnline } from "../lib/connectivity";
 import { listenUrl, NOT_STORED_COPY } from "../lib/share";

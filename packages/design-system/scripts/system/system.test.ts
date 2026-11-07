@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { usageComment } from "../../apps/web/src/lib/designCatalogue.js";
+import { usageComment } from "../../../../apps/web/src/lib/designCatalogue.js";
 import {
   buildSystem,
   classTokens,
@@ -23,13 +23,15 @@ import {
 } from "./build.js";
 import { findParts, findTokens } from "./query.js";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const system = buildSystem();
 const ids = new Set(system.parts.map((part) => part.id));
-const STYLES = join(ROOT, "apps/web/src/styles");
-const allCss = readdirSync(STYLES)
-  .filter((file) => file.endsWith(".css"))
-  .map((file) => readFileSync(join(STYLES, file), "utf8"))
+const allCss = [join(ROOT, "packages/design-system/styles"), join(ROOT, "apps/web/src/styles")]
+  .flatMap((dir) =>
+    readdirSync(dir)
+      .filter((file) => file.endsWith(".css"))
+      .map((file) => readFileSync(join(dir, file), "utf8")),
+  )
   .join("\n");
 
 describe("the design system file", () => {
@@ -49,7 +51,7 @@ describe("the design system file", () => {
         .filter((name) => !new RegExp(`\\.${name}(?![\\w-])`).test(allCss))
         .map((name) => `${part.id}: .${name} is in no stylesheet`),
       ...(part.files ?? [])
-        .filter((file) => !existsSync(join(ROOT, "apps/web/src", file)))
+        .filter((file) => !existsSync(join(ROOT, file)))
         .map((file) => `${part.id}: ${file} does not exist`),
     ]);
     expect(broken).toEqual([]);
@@ -130,7 +132,7 @@ describe("the design system file", () => {
       join(root, "apps/web/src/styles/x.css"),
       "/* inside the row */\n.row .field {\n  color: red;\n}\n\n/* the row itself */\n.row {\n  color: blue;\n}\n",
     );
-    expect(usageComment("x.css", ".row", root)).toBe("the row itself");
+    expect(usageComment("apps/web/src/styles/x.css", ".row", root)).toBe("the row itself");
   });
 
   // Prevents the index outgrowing its purpose: it is read whole, so each byte is paid for on every task.

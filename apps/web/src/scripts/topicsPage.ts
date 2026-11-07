@@ -5,7 +5,7 @@
  * used, so a page's first load stays inside the budget. Each page is whole static HTML without it.
  */
 
-import { warmWhenIdle } from "../design-system/idle";
+import { warmWhenIdle } from "@singularity/design-system/idle";
 import { hasSaved, storeOn } from "../lib/savedKey";
 import { activeSummary } from "../lib/settingsSummary";
 import { installMultiSelect } from "./multiSelect";

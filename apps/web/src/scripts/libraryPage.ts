@@ -4,7 +4,7 @@
  * heading before the first card of its month on show.
  */
 
-import { whenIdle } from "../design-system/idle";
+import { whenIdle } from "@singularity/design-system/idle";
 import {
   type CardData,
   chipFilter,

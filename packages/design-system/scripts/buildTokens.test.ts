@@ -3,6 +3,15 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  composite,
+  contrastRatio,
+  oklchStringToRgb,
+  parseOklch,
+  type Rgb,
+  relativeLuminance,
+} from "../../../scripts/colorMath.js";
+import { type SpringParams, springCurve } from "../../../scripts/springCurve.js";
+import {
   aliasTarget,
   buildCss,
   cssName,
@@ -19,16 +28,7 @@ import {
   type TokenDocument,
   type TokenValue,
 } from "./buildTokens.js";
-import {
-  composite,
-  contrastRatio,
-  oklchStringToRgb,
-  parseOklch,
-  type Rgb,
-  relativeLuminance,
-} from "./colorMath.js";
 import { derivedColors, RAMP_STEPS, RAMPS, type RampName, rampStep } from "./colorRamp.js";
-import { type SpringParams, springCurve } from "./springCurve.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const doc: TokenDocument = loadTokens();
@@ -755,7 +755,7 @@ describe("generated CSS", () => {
 describe("style sources", () => {
   const defined = new Set<string>();
   // Tokens plus the custom properties foundations.css declares for components to read.
-  const foundationsPath = resolve(ROOT, "apps/web/src/styles/foundations.css");
+  const foundationsPath = resolve(ROOT, "styles/foundations.css");
   const declared = existsSync(foundationsPath) ? readFileSync(foundationsPath, "utf8") : "";
   for (const match of `${buildCss(doc)}\n${declared}`.matchAll(/(--[\w-]+)\s*:/g)) {
     defined.add(match[1] ?? "");
@@ -791,12 +791,12 @@ describe("style sources", () => {
   }
 
   it("keeps foundations.css on token references only", () => {
-    checkSource("apps/web/src/styles/foundations.css", { strictLiterals: true });
+    checkSource("styles/foundations.css", { strictLiterals: true });
   });
 
   it("keeps the prototype stylesheet on defined tokens", () => {
-    checkSource("scripts/prototype/ui-prototype.css", { strictLiterals: false });
-    checkSource("scripts/soundLab/sound-lab.css", { strictLiterals: false });
+    checkSource("../../scripts/prototype/ui-prototype.css", { strictLiterals: false });
+    checkSource("../../scripts/soundLab/sound-lab.css", { strictLiterals: false });
   });
 });
 

@@ -1,11 +1,11 @@
-import { buttonClass } from "../design-system/button";
+import { buttonClass } from "@singularity/design-system/button";
 import {
   dialogActionsClass,
   dialogBodyClass,
   dialogClass,
   dialogTitleClass,
-} from "../design-system/dialog";
-import { dismissOnScrim } from "../design-system/pullDismiss";
+} from "@singularity/design-system/dialog";
+import { dismissOnScrim } from "@singularity/design-system/pullDismiss";
 
 /**
  * The unsaved-changes guard every edit sheet shares (2026-10-25). A sheet saves only with its own

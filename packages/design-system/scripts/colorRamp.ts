@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { oklchToRgb } from "./colorMath.js";
+import { oklchToRgb } from "../../../scripts/colorMath.js";
 
 /** Ten steps per color. 50 is the lightest tint, 900 the darkest shade. */
 export const RAMP_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const;

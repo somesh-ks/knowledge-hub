@@ -6,7 +6,7 @@
  * A bundled module runs once per session, so the marks are applied on astro:page-load.
  */
 
-import { warmWhenIdle } from "../design-system/idle";
+import { warmWhenIdle } from "@singularity/design-system/idle";
 import { parseVotes, pressedOf, VOTES_KEY } from "../lib/storyVotes";
 
 let loading: Promise<typeof import("./storyVotes")> | null = null;

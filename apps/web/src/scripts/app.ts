@@ -1,5 +1,5 @@
-import { setOnlineProbe } from "../design-system/idle";
-import { installRipple } from "../design-system/ripple";
+import { setOnlineProbe } from "@singularity/design-system/idle";
+import { installRipple } from "@singularity/design-system/ripple";
 import { counted, installAnalytics } from "../lib/analytics";
 import { connectivity, isOnline } from "../lib/connectivity";
 import { watchPlatformFaults } from "../lib/platformFaults";

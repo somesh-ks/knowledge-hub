@@ -19,7 +19,7 @@ export interface PartSource {
   summary: string;
   /** CSS classes that make it. The first is the root. */
   classes: string[];
-  /** Components, scripts and stores that belong to it, relative to apps/web/src. */
+  /** Components, scripts and stores that belong to it, as repo paths. */
   files?: string[];
   /** Concrete situations where this is the part. Also what a lookup matches against. */
   when: string[];
@@ -34,7 +34,7 @@ export interface PartSource {
 }
 
 export interface Part extends PartSource {
-  /** The stylesheets (under apps/web/src/styles) that define the classes. */
+  /** The stylesheets (repo paths) that define the classes. */
   styles: string[];
   /** The comment written over the root class, which is the owner's wording of its usage. */
   usage: string;

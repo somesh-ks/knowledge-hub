@@ -12,11 +12,14 @@ import { COMPONENTS } from "./registry";
  * that no component draws, and the guide then shows something the app does not use.
  */
 
-const SRC = join(import.meta.dirname, "..");
-const STYLES = join(SRC, "styles");
+/** The package, the repository around it, and the reader's source, whose pages draw the system. */
+const PACKAGE = join(import.meta.dirname, "..");
+const ROOT = join(PACKAGE, "..", "..");
+const SRC = join(ROOT, "apps", "web", "src");
+const STYLES = join(PACKAGE, "styles");
 /** Every app that draws the system: the admin app borrows the reader's stylesheets and components. */
 const APPS = ["web", "admin", "design"]
-  .map((app) => join(SRC, "..", "..", app, "src"))
+  .map((app) => join(ROOT, "apps", app, "src"))
   .filter((dir) => existsSync(dir));
 
 /** Source files that draw markup: the app's pages, components, scripts and islands, not tests. */
@@ -112,7 +115,7 @@ describe("design-system components", () => {
           const text = quoted(readFileSync(file, "utf8"));
           return written
             .filter((name) => wholeClass(name).test(text))
-            .map((name) => `${relative(join(SRC, "..", "..", ".."), file)}: ${name}`);
+            .map((name) => `${relative(ROOT, file)}: ${name}`);
         }),
       );
       expect(offenders, `draw it with ${c.name} (design-system/), never with its class`).toEqual(
@@ -144,7 +147,7 @@ describe("a menu drawn as a bottom sheet", () => {
 
   it("every one draws its header and its body", () => {
     const missing = drawing.flatMap(({ file, text }) => {
-      const name = relative(join(SRC, "..", "..", ".."), file);
+      const name = relative(ROOT, file);
       // The emoji picker scrolls its own grid; every other sheet menu wraps its rows.
       const needsBody = !file.endsWith("EmojiPicker.astro");
       return [
@@ -171,7 +174,7 @@ describe("a menu drawn as a bottom sheet", () => {
     // A hand-built panel is how the queue menu lost its header; every surface is a DS one.
     const stray = APPS.flatMap((root) => markupFiles(root)).flatMap((file) => {
       const text = readFileSync(file, "utf8");
-      const name = relative(join(SRC, "..", "..", ".."), file);
+      const name = relative(ROOT, file);
       const popover =
         (AUTO_POPOVER.test(text) || SET_AUTO_POPOVER.test(text)) &&
         !/menuListClass\(/.test(text) &&
@@ -200,7 +203,7 @@ describe("a tab strip", () => {
   it("sits in the shared tab bar, which draws its line", () => {
     const strips: string[] = [];
     const outside = APPS.flatMap((root) => markupFiles(root)).flatMap((file) => {
-      const name = relative(join(SRC, "..", "..", ".."), file);
+      const name = relative(ROOT, file);
       // Until nothing changes, so cutting one comment never joins the halves of another (CodeQL).
       let markup = readFileSync(file, "utf8");
       for (let last = ""; last !== markup; ) {
@@ -276,7 +279,7 @@ describe("the Flag", () => {
 
   // A flag with neither art nor the badge is a 404 and an empty box (the emoji picker's flags).
   it("has art, or draws the badge, for every flag the emoji list and the time zone list hold", () => {
-    const art = new Set(readdirSync(join(SRC, "..", "public", "flags")));
+    const art = new Set(readdirSync(join(PACKAGE, "flags")));
     const emoji = readFileSync(join(SRC, "..", "public", "emoji.json"), "utf8");
     const regions = [
       ...[...emoji.matchAll(/[\u{1F1E6}-\u{1F1FF}]{2}/gu)].map((m) => flagRegion(m[0]) ?? ""),

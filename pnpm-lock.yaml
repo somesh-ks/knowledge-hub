@@ -30,6 +30,9 @@ importers:
       '@singularity/core':
         specifier: workspace:*
         version: link:packages/core
+      '@singularity/design-system':
+        specifier: workspace:*
+        version: link:packages/design-system
       '@types/node':
         specifier: ^26.6.6
         version: 26.6.6
@@ -82,6 +85,9 @@ importers:
       '@astrojs/check':
         specifier: ^0.9.12
         version: 0.9.12(@emnapi/runtime@1.11.3)(prettier@3.9.9)(typescript@6.0.3)
+      '@singularity/design-system':
+        specifier: workspace:*
+        version: link:../../packages/design-system
       '@singularity/web':
         specifier: workspace:*
         version: link:../web
@@ -104,6 +110,9 @@ importers:
       '@astrojs/check':
         specifier: ^0.9.12
         version: 0.9.12(@emnapi/runtime@1.11.3)(prettier@3.9.9)(typescript@6.0.3)
+      '@singularity/design-system':
+        specifier: workspace:*
+        version: link:../../packages/design-system
       '@singularity/web':
         specifier: workspace:*
         version: link:../web
@@ -128,6 +137,9 @@ importers:
       '@singularity/cover':
         specifier: workspace:*
         version: link:../../packages/cover
+      '@singularity/design-system':
+        specifier: workspace:*
+        version: link:../../packages/design-system
       '@singularity/engine':
         specifier: workspace:*
         version: link:../../packages/engine
@@ -207,9 +219,22 @@ importers:
       '@singularity/core':
         specifier: workspace:*
         version: link:../core
+      '@singularity/design-system':
+        specifier: workspace:*
+        version: link:../design-system
       fontkitten:
         specifier: ^1.0.3
         version: 1.0.3
+
+  packages/design-system:
+    dependencies:
+      '@singularity/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      astro:
+        specifier: ^7.4.4
+        version: 7.4.4(@types/node@26.6.6)(@vercel/blob@2.8.2)(@vercel/functions@3.10.5(ws@8.22.1))(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
 
   packages/engine:
     dependencies:

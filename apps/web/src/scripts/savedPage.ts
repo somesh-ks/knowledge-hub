@@ -5,7 +5,7 @@
  * the `singularity:saved` event.
  */
 
-import { whenIdle } from "../design-system/idle";
+import { whenIdle } from "@singularity/design-system/idle";
 import { savedAt } from "../player/core/saved";
 
 function mount(root: HTMLElement): void {

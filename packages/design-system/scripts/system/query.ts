@@ -130,9 +130,8 @@ export function describePart(part: Part): string {
     `${part.id}: ${part.name}. ${part.summary}`,
     `  classes: ${part.classes.map((name) => `.${name}`).join(" ")}`,
   ];
-  if (part.files?.length)
-    out.push(`  files: ${part.files.map((file) => `apps/web/src/${file}`).join(", ")}`);
-  out.push(`  styled in: ${part.styles.map((file) => `apps/web/src/styles/${file}`).join(", ")}`);
+  if (part.files?.length) out.push(`  files: ${part.files.join(", ")}`);
+  out.push(`  styled in: ${part.styles.join(", ")}`);
   out.push(`  use when: ${part.when.join("; ")}`);
   for (const item of part.not ?? []) out.push(`  not when: ${item.when} -> ${item.use}`);
   if (part.markup) out.push(`  markup: ${part.markup}`);

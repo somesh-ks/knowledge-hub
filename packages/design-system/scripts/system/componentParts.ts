@@ -4,20 +4,20 @@
  * words a lookup matches against and the one-line rules the registry does not hold. A family that
  * becomes a component adds its entry here and deletes its hand-written ones from parts.ts.
  */
-import { BADGE } from "../../apps/web/src/design-system/badge.js";
-import { BANNER } from "../../apps/web/src/design-system/banner.js";
-import { BUTTON } from "../../apps/web/src/design-system/button.js";
-import { DIALOG } from "../../apps/web/src/design-system/dialog.js";
-import { DRAWER } from "../../apps/web/src/design-system/drawer.js";
-import { FIELD } from "../../apps/web/src/design-system/field.js";
-import type { ComponentRef, Guidance } from "../../apps/web/src/design-system/guidance.js";
-import { ICON } from "../../apps/web/src/design-system/icon.js";
-import { MENU } from "../../apps/web/src/design-system/menu.js";
-import { RIPPLE } from "../../apps/web/src/design-system/ripple.js";
-import { SELECT } from "../../apps/web/src/design-system/select.js";
-import { SHEET } from "../../apps/web/src/design-system/sheet.js";
-import { SLIDER } from "../../apps/web/src/design-system/slider.js";
-import { SWITCH } from "../../apps/web/src/design-system/switch.js";
+import { BADGE } from "../../src/badge.js";
+import { BANNER } from "../../src/banner.js";
+import { BUTTON } from "../../src/button.js";
+import { DIALOG } from "../../src/dialog.js";
+import { DRAWER } from "../../src/drawer.js";
+import { FIELD } from "../../src/field.js";
+import type { ComponentRef, Guidance } from "../../src/guidance.js";
+import { ICON } from "../../src/icon.js";
+import { MENU } from "../../src/menu.js";
+import { RIPPLE } from "../../src/ripple.js";
+import { SELECT } from "../../src/select.js";
+import { SHEET } from "../../src/sheet.js";
+import { SLIDER } from "../../src/slider.js";
+import { SWITCH } from "../../src/switch.js";
 import type { PartSource } from "./types.js";
 
 /** The part a `dontUseWhen` points at. A family not yet a component keeps its hand-written id. */
@@ -78,7 +78,7 @@ const words: Record<string, { keywords: string[]; markup: string; rules?: string
 const sentences = (lines: readonly string[]): string[] =>
   lines.map((line) => line.replace(/\.$/, ""));
 
-const FILES = ["design-system/Button.astro", "design-system/button.ts"];
+const FILES = ["packages/design-system/src/Button.astro", "packages/design-system/src/button.ts"];
 
 /** A single-class control (Switch, Slider): the registry's guidance plus the words a lookup matches. */
 const control = (
@@ -101,7 +101,10 @@ const control = (
   kind: extra.kind ?? "selection",
   summary: guidance.summary,
   classes: [`${id}-input`],
-  files: extra.files ?? [`design-system/${name}.astro`, `design-system/${id}.ts`],
+  files: extra.files ?? [
+    `packages/design-system/src/${name}.astro`,
+    `packages/design-system/src/${id}.ts`,
+  ],
   when: sentences(guidance.useWhen),
   // An exclusion with no `instead` has no part to point at: the lookup leaves it out rather than guess.
   not: [
@@ -240,10 +243,10 @@ export const componentParts = (): PartSource[] => [
     ],
     classes: ["select-outlined", "select-tonal"],
     files: [
-      "design-system/Select.astro",
-      "design-system/select.ts",
-      "design-system/selectSheet.ts",
-      "design-system/wheel.ts",
+      "packages/design-system/src/Select.astro",
+      "packages/design-system/src/select.ts",
+      "packages/design-system/src/selectSheet.ts",
+      "packages/design-system/src/wheel.ts",
     ],
     keywords: [
       "select",
@@ -307,10 +310,10 @@ export const componentParts = (): PartSource[] => [
     classes: ["dialog-panel", "dialog-body", "dialog-actions", "dialog-actions-stacked"],
     not: [{ when: "a form that slides in, with fields", use: "sheet" }],
     files: [
-      "design-system/Dialog.astro",
-      "design-system/DialogActions.astro",
-      "design-system/DialogTitle.astro",
-      "design-system/dialog.ts",
+      "packages/design-system/src/Dialog.astro",
+      "packages/design-system/src/DialogActions.astro",
+      "packages/design-system/src/DialogTitle.astro",
+      "packages/design-system/src/dialog.ts",
     ],
     keywords: ["confirm", "modal", "yes or no", "are you sure", "delete confirm"],
     markup:
@@ -324,10 +327,10 @@ export const componentParts = (): PartSource[] => [
     kind: "container",
     classes: ["sheet-side", "sheet-head", "sheet-body", "sheet-title"],
     files: [
-      "design-system/Sheet.astro",
-      "design-system/sheet.ts",
-      "design-system/SheetHeader.astro",
-      "design-system/sheetHead.ts",
+      "packages/design-system/src/Sheet.astro",
+      "packages/design-system/src/sheet.ts",
+      "packages/design-system/src/SheetHeader.astro",
+      "packages/design-system/src/sheetHead.ts",
     ],
     keywords: [
       "bottom sheet",
@@ -350,7 +353,7 @@ export const componentParts = (): PartSource[] => [
   control("drawer", "Drawer", DRAWER, {
     kind: "container",
     classes: ["drawer-scrim", "drawer-viewport", "drawer-popup", "drawer-panel"],
-    files: ["sheets/SheetFrame.tsx", "design-system/drawer.ts"],
+    files: ["apps/web/src/sheets/SheetFrame.tsx", "packages/design-system/src/drawer.ts"],
     keywords: ["island sheet", "swipe to dismiss", "Base UI drawer", "react sheet"],
     markup:
       '<SheetFrame open={open} onOpenChange={setOpen} title="Create" closeLabel="Close">...</SheetFrame>',

@@ -6,7 +6,7 @@
  * data saver.
  */
 
-import { whenIdle } from "../design-system/idle";
+import { whenIdle } from "@singularity/design-system/idle";
 import { isOnline } from "../lib/connectivity";
 import { SAVED_KEY_PREFIX } from "../player/core/saved";
 

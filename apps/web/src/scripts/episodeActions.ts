@@ -1,6 +1,6 @@
-import { DIALOG_SELECTOR } from "../design-system/dialog";
-import { dismissOnScrim, sheetGestures } from "../design-system/pullDismiss";
-import { PANEL_SHEET_SELECTOR } from "../design-system/sheet";
+import { DIALOG_SELECTOR } from "@singularity/design-system/dialog";
+import { dismissOnScrim, sheetGestures } from "@singularity/design-system/pullDismiss";
+import { PANEL_SHEET_SELECTOR } from "@singularity/design-system/sheet";
 import { rememberCancelToken } from "../lib/cancelTokens";
 import { isSiteAnswer, withErrorRef } from "../lib/errorRef";
 import { createCommentAsker } from "../lib/regenAsk";

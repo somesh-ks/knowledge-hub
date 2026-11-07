@@ -10,39 +10,8 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     # SYSTEM_PATHS in scripts/designSystemGate.mjs, as globs; its test fails when the two drift.
     paths:
-      - apps/web/src/design-system/**
-      - apps/web/src/styles/buttons.css
-      - apps/web/src/styles/icon.css
-      - apps/web/src/styles/badge.css
-      - apps/web/src/styles/flag.css
-      - apps/web/src/styles/code.css
-      - apps/web/src/styles/glow.css
-      - apps/web/src/styles/fonts.css
-      - apps/web/src/assets/fonts/**
-      - apps/web/public/flags**
-      - apps/web/src/styles/switch.css
-      - apps/web/src/styles/slider.css
-      - apps/web/src/styles/avatar.css
-      - apps/web/src/styles/row-exit.css
-      - apps/web/src/styles/field.css
-      - apps/web/src/styles/select.css
-      - apps/web/src/styles/picker.css
-      - apps/web/src/styles/wheel.css
-      - apps/web/src/styles/ripple.css
-      - apps/web/src/styles/menu.css
-      - apps/web/src/styles/banner.css
-      - apps/web/src/styles/dialog.css
-      - apps/web/src/styles/sheet.css
-      - apps/web/src/styles/drawer.css
-      - apps/web/src/styles/primitives.css
-      - apps/web/src/styles/foundations.css
-      - apps/web/src/styles/tokens.css
-      - tokens/**
+      - packages/design-system/**
       - apps/design/**
-      - scripts/system/**
-      - scripts/colorRamp.ts
-      - scripts/styleRecipe.ts
-      - scripts/styleRecipe.test.ts
       - .github/CODEOWNERS
       - .claude/skills/feature/references/controls-guide.md
 

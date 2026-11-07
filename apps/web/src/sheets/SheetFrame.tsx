@@ -1,21 +1,21 @@
 import { Drawer } from "@base-ui/react/drawer";
 import {
+  drawerPanelClass,
+  drawerPopupClass,
+  drawerScrimClass,
+  drawerViewportClass,
+} from "@singularity/design-system/drawer";
+import { quietNextClose } from "@singularity/design-system/gestureQuiet";
+import { sheetHeadClass, sheetTitleClass } from "@singularity/design-system/sheet";
+import {
   type ComponentProps,
   type ReactNode,
   useEffect,
   useRef,
   useSyncExternalStore,
 } from "react";
-import {
-  drawerPanelClass,
-  drawerPopupClass,
-  drawerScrimClass,
-  drawerViewportClass,
-} from "../design-system/drawer";
-import { quietNextClose } from "../design-system/gestureQuiet";
-import { sheetHeadClass, sheetTitleClass } from "../design-system/sheet";
 import Icon from "../player/ui/LazyIcon";
-import "../styles/drawer.css";
+import "@singularity/design-system/styles/drawer.css";
 
 type InitialFocus = ComponentProps<typeof Drawer.Popup>["initialFocus"];
 

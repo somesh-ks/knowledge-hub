@@ -1,0 +1,21 @@
+{
+  "name": "@singularity/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./styles/*": "./styles/*",
+    "./tokens/*": "./tokens/*",
+    "./fonts/*": "./fonts/*",
+    "./flags/*": "./flags/*",
+    "./scripts/*": "./scripts/*.ts",
+    "./*.astro": "./src/*.astro",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@singularity/core": "workspace:*"
+  },
+  "devDependencies": {
+    "astro": "^7.4.4"
+  }
+}

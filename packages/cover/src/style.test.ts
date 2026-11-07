@@ -9,7 +9,7 @@ import { STYLE_RULES } from "./style.js";
  */
 describe("tokens.css holds each style's cover numbers", () => {
   const css = readFileSync(
-    new URL("../../../apps/web/src/styles/tokens.css", import.meta.url),
+    new URL("../../design-system/styles/tokens.css", import.meta.url),
     "utf8",
   );
   const readIn = (block: RegExp, style: string, property: string): number => {
