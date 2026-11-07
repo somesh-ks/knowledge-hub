@@ -60,7 +60,7 @@ export function openCreateSheet(trigger: HTMLElement | null): void {
   const sheet = dialog;
   const refocus = () => trigger?.isConnected && trigger.focus();
   // Browser Back closes the sheet and stays on the page. The sheet takes one history entry. The
-  // head script (themeInit.js) asks first on every pop; answering "handled" keeps Astro's router
+  // head script (backInit.js) asks first on every pop; answering "handled" keeps Astro's router
   // from re-rendering the page for it.
   let entry = true;
   const onBack = (event: Event) => {

@@ -15,7 +15,7 @@ Ledger section 3, one surface. Read [the core](../design-engineering-ledger.md) 
   - Axe runs on every route in both schemes.
 - **Theme.**
   - A 512-byte head script applies the stored choice before first paint (D20). Anything else a page restores, such as the Library's gallery or list view, waits one frame for the page script, because the head budget has no room (2026-10-08).
-  - One store: `singularity:preferences` (`player/core/preferences.ts:9`, `themeInit.js:3`). Two keys once lived side by side, and the player cleared a stored dark theme (2026-10-05).
+  - One store: `singularity:preferences` (`player/core/preferences.ts:9`, `themeInit.js:2`). Two keys once lived side by side, and the player cleared a stored dark theme (2026-10-05).
   - The theme change crossfades with a view transition, and `theme-color` metas follow. It first decodes the new theme's covers on screen (at most 400 ms), and the bars fade inside the page's picture, after "there is a glitch in the screen when I switch the app theme" (2026-10-16, D122).
 - **Ambient light.** The ask was "clever integration of shaders but mild" (2026-10-08, D48).
   - A CSS field of the cover's colours, with a 128px WebGL canvas faded over it.

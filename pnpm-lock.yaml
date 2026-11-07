@@ -113,9 +113,6 @@ importers:
       '@singularity/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
-      '@singularity/web':
-        specifier: workspace:*
-        version: link:../web
       typescript:
         specifier: ~6.0.3
         version: 6.0.3

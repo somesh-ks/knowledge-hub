@@ -2,14 +2,14 @@
 import Badge from "@singularity/design-system/Badge.astro";
 import BrandMark from "@singularity/design-system/BrandMark.astro";
 import Icon from "@singularity/design-system/Icon.astro";
-import themeInit from "../../../web/src/scripts/themeInit.js?raw";
+import themeInit from "@singularity/design-system/scripts/themeInit.js?raw";
 import AdminNav from "../components/AdminNav.astro";
 import SignOut from "../components/SignOut.astro";
 import { href, READER_HREF } from "../lib/sections";
 import "@singularity/design-system/styles/tokens.css";
 import "@singularity/design-system/styles/foundations.css";
 import "@singularity/design-system/styles/fonts.css";
-import "../../../web/src/styles/shell.css";
+import "@singularity/design-system/styles/shell.css";
 import "@singularity/design-system/styles/buttons.css";
 import "@singularity/design-system/styles/primitives.css";
 import "@singularity/design-system/styles/banner.css";
@@ -18,7 +18,7 @@ import "../../../web/src/styles/settings.css";
 import "../../../web/src/styles/manage.css";
 import "../../../web/src/styles/health.css";
 import "../../../web/src/styles/costs.css";
-import "../../../web/src/styles/utilities.css";
+import "@singularity/design-system/styles/utilities.css";
 import "../styles/admin.css";
 
 interface Props {
@@ -42,7 +42,7 @@ const { title, current, bare = false } = Astro.props;
     <meta name="referrer" content="no-referrer" />
     <title>{title} · Singularity admin</title>
     <link rel="icon" href={href("/favicon.svg")} type="image/svg+xml" />
-    {/* The reader's own script: a theme chosen there (stored in this browser) shows here too. */}
+    {/* The reader's theme script: a theme chosen there (stored in this browser) shows here too. */}
     <script is:inline set:html={themeInit.trim()} />
   </head>
   <body>

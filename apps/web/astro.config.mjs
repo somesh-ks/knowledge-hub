@@ -8,6 +8,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import react from "@astrojs/react";
@@ -30,8 +31,8 @@ import { FUNCTION_MAX_DURATION_S } from "./src/server/functionLimits.mjs";
 // no longer points at the source tree, so the repository root is fixed here, where it is reliable.
 process.env.SINGULARITY_REPO_ROOT ??= fileURLToPath(new URL("../../", import.meta.url));
 
-// The inline scripts must run before first paint, so they cannot be external files: the theme
-// in the head, the device banners, the Library's saved view and the Settings
+// The inline scripts must run before first paint, so they cannot be external files: the theme and
+// the back bridge in the head, the device banners, the Library's saved view and the Settings
 // theme select. Their hashes go into the
 // Content-Security-Policy instead of allowing inline scripts in general.
 const inlineScriptHash = (path) => {
@@ -39,7 +40,12 @@ const inlineScriptHash = (path) => {
   return `sha256-${createHash("sha256").update(code).digest("base64")}`;
 };
 const inlineScriptHashes = [
-  inlineScriptHash("./src/scripts/themeInit.js"),
+  inlineScriptHash(
+    pathToFileURL(
+      createRequire(import.meta.url).resolve("@singularity/design-system/scripts/themeInit.js"),
+    ),
+  ),
+  inlineScriptHash("./src/scripts/backInit.js"),
   inlineScriptHash("./src/scripts/bannersInit.js"),
   inlineScriptHash("./src/scripts/libraryViewInit.js"),
   inlineScriptHash("./src/scripts/settingsInit.js"),

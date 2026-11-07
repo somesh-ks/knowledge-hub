@@ -15,7 +15,6 @@ exec sh ../../scripts/deploy-batch.sh -- \
   ../web/src/lib/brandMarks.ts \
   ../web/src/lib/healthRows.ts \
   ../web/src/scripts/segmentedNav.ts \
-  ../web/src/scripts/themeInit.js \
   ../../packages/engine/src/store/configPaths.ts \
   ../../packages/engine/src/store/experimentFlags.ts \
   ../../packages/engine/src/store/experimentHits.ts \
