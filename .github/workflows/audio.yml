@@ -14,6 +14,10 @@ on:
         required: false
       SPEECHIFY_API_KEY:
         required: false
+      # A Postgres login that sees only the cost ledger and the character count (D381, runbook 14),
+      # never the shared DATABASE_URL.
+      AUDIO_DATABASE_URL:
+        required: false
     inputs:
       # What the step is called, so an episode run can show it as "Recording voices". run.yml leaves
       # it out and its step keeps the name "Audio", which the status route reads.
@@ -137,6 +141,10 @@ jobs:
           SPEECHIFY_MONTHLY_CHARS: ${{ vars.SPEECHIFY_MONTHLY_CHARS }}
           SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME }}
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
+          # The run state (D381): the job pulls and saves its own two kinds of file through the
+          # restricted login. Either one unset leaves the state in git alone.
+          DATABASE_URL: ${{ secrets.AUDIO_DATABASE_URL }}
+          SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
           PRUNE_NOW: ${{ inputs.prune_now }}
         run: |
           prune_args=(--prune 120)

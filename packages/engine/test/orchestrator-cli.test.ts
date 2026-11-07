@@ -473,6 +473,18 @@ describe("the run state is in Postgres when its switch is on (D381)", () => {
     expect(ran).toEqual([]);
   });
 
+  // The bug it prevents: the audio job's secret unset or misspelled leaves it with no URL; skipping
+  // the pull and save quietly lets the next job write older rows over its cost ledger.
+  it("stops the command when the switch is on and no database URL is given", async () => {
+    const ran: string[] = [];
+    const io = {
+      ...ioFor(async () => ({ query: async () => [] }), ran),
+      env: { SINGULARITY_STATE_STORE: "postgres", DATABASE_URL: "" },
+    };
+    expect(await runCli(["run", "--stage", "gate"], io)).toBe(1);
+    expect(ran).toEqual([]);
+  });
+
   it("leaves state/ alone with the switch off", async () => {
     const ran: string[] = [];
     const io = { ...ioFor(async () => ({ query: async () => [] }), ran), env: {} };

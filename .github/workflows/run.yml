@@ -397,8 +397,10 @@ jobs:
     # keeps its name, `deploy`, but now means "audio follow-up needed".
     if: needs.run.outputs.deploy == 'true'
     uses: ./.github/workflows/audio.yml
-    # Named, so the audio job never sees the model keys or the database URL (SEC-03).
+    # Named, so the audio job never sees the model keys or the shared database URL (SEC-03). It gets its
+    # own restricted login for the cost ledger (D381).
     secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
       SPEECHIFY_API_KEY: ${{ secrets.SPEECHIFY_API_KEY }}
+      AUDIO_DATABASE_URL: ${{ secrets.AUDIO_DATABASE_URL }}

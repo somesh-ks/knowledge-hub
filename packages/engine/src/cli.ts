@@ -23,7 +23,7 @@ import {
   stateStoreUrl,
 } from "./store/configDocs.js";
 import { missingConfigFiles, REQUIRED_CONFIG_DOCUMENTS } from "./store/configExamples.js";
-import { pullState } from "./store/stateDocs.js";
+import { pullState, stateScopeFor } from "./store/stateDocs.js";
 
 /** Where the CLI prints and what it reads, so tests drive it without touching the process. */
 export interface CliIo {
@@ -287,10 +287,20 @@ export async function runCli(argv: readonly string[], io: CliIo = {}): Promise<n
   // command, since a push from stale files would write them over newer rows; `health` only reports.
   if (readsStateAtStart(spec.name, parsed.rest)) {
     const stateUrl = stateStoreUrl(env);
+    // A switch that is on with no URL (the audio job's secret unset or misspelled) would otherwise
+    // skip the pull and save quietly, and the next job would write older rows over its ledger.
+    if (stateUrl === null && env.SINGULARITY_STATE_STORE === "postgres") {
+      const message = "the state store is switched on but has no database URL";
+      if (spec.name !== "health") {
+        err(`singularity: ${message} (the audio job reads the AUDIO_DATABASE_URL secret).\n`);
+        return 1;
+      }
+      log.warn(`${message}, health reads the files here`);
+    }
     if (stateUrl !== null) {
       try {
         const sql = await (io.connectConfigStore ?? connectConfigStore)(stateUrl);
-        const changed = await pullState(root, sql);
+        const changed = await pullState(root, sql, stateScopeFor(spec.name));
         log.info(`state store: ${changed.length === 0 ? "files current" : changed.join(", ")}`);
       } catch (error) {
         const reason = redact(firstLine(String(error)), secrets);
