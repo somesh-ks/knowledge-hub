@@ -167,9 +167,18 @@ function run({ root, dry }) {
       .filter((file) => file && existsSync(resolve(root, file)));
   // 1. A file the branch added under an old path moves with the rest.
   const tracked = new Set(git("ls-files").split("\n"));
-  for (const file of listed()) {
-    const to = movedPath(file);
-    if (to === file) continue;
+  const moves = listed()
+    .map((file) => [file, movedPath(file)])
+    .filter(([file, to]) => to !== file);
+  // Never overwrite: a file already at the new path stops the run before any move.
+  const taken = moves.filter(([, to]) => existsSync(resolve(root, to)));
+  if (taken.length) {
+    for (const [file, to] of taken) console.error(`collision ${file} -> ${to} (exists)`);
+    console.error("Resolve these by hand, then run again. Nothing moved.");
+    process.exitCode = 1;
+    return;
+  }
+  for (const [file, to] of moves) {
     console.log(`move ${file} -> ${to}`);
     if (dry) continue;
     mkdirSync(resolve(root, posix.dirname(to)), { recursive: true });
