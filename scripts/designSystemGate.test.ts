@@ -8,6 +8,7 @@ import {
   checkDesignSystemPr,
   listEntries,
   SYSTEM_NAMES,
+  SYSTEM_PATHS,
   systemSources,
 } from "./designSystemGate.mjs";
 
@@ -201,6 +202,21 @@ describe("design-system gate", () => {
       `${at}: ../components/SheetHeader.astro`,
       `${at}: ../styles/icon.css.ts`,
     ]);
+  });
+
+  // The workflow runs only on its path filter, so a system path missing there escaped the label
+  // rule and the freeze (flag.css, glow.css and the fonts were missing on 2026-11-07).
+  it("runs the workflow on every system path", () => {
+    const workflow = readFileSync(
+      join(import.meta.dirname, "../.github/workflows/design-system.yml"),
+      "utf8",
+    );
+    const filter = [...workflow.matchAll(/^ {6}- (\S+)$/gm)].map(([, glob]) => glob);
+    expect(filter).toEqual(
+      SYSTEM_PATHS.map((path) =>
+        path.endsWith("/") || path.endsWith("/flags") ? `${path}**` : path,
+      ),
+    );
   });
 
   it("finds the system's files, so the boundary check cannot pass over an empty folder", () => {

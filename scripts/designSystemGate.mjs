@@ -286,6 +286,7 @@ export function checkDesignSystemPr({
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const base = process.env.BASE;
   const labels = JSON.parse(process.env.LABELS ?? "[]");
+  if (process.env.ADD_LABEL === "true" && !labels.includes(LABEL)) labels.push(LABEL);
   if (!base) {
     console.error("BASE (the pull request's base commit) is required.");
     process.exit(2);
