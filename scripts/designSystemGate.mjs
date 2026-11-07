@@ -143,9 +143,7 @@ export function boundaryProblems(sources) {
       // prefix also takes its sprite.
       const owns = (path) =>
         path.endsWith("/") || path.endsWith("/flags") ? target.startsWith(path) : target === path;
-      return target.startsWith(SYSTEM_DIR) || owned.some(owns)
-        ? []
-        : [`${file}: ${specifier}`];
+      return target.startsWith(SYSTEM_DIR) || owned.some(owns) ? [] : [`${file}: ${specifier}`];
     }),
   );
 }
