@@ -180,7 +180,7 @@ function main(): void {
     return;
   }
   const values = parseDotenv(readFileSync(envPath, "utf8"));
-  const repo = values.GITHUB_REPOSITORY || "somesh-ks/knowledge-hub";
+  const repo = values.GITHUB_REPOSITORY || "somesh-ks/singularityfm-app";
   const childEnv: NodeJS.ProcessEnv = { ...process.env };
   // The Vercel CLI uses its own login. The VERCEL_TOKEN in .env is the one GitHub Actions needs;
   // passing it to the CLI as well made every Vercel push fail with "Could not retrieve Project

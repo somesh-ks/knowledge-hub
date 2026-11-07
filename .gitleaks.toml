@@ -1,7 +1,7 @@
 # The default rules, plus the invented values the tests assert on. Each entry below is a literal
 # written for a test; none is a credential. Add a value here only when it is made up, and never
 # allow a whole path: a real key pasted into a test must still fail the scan.
-title = "knowledge-hub"
+title = "singularityfm-app"
 
 [extend]
 useDefault = true
