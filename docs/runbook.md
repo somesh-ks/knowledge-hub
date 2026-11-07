@@ -459,6 +459,6 @@ create policy audio_state_rows on state_documents to audio_state
 2. Make the connection string for that login: the owner's string with the user `audio_state` and the new password in place of the owner's (Neon: Connect, choose the role). Use the same pooled host as `DATABASE_URL`.
 3. Settings → Secrets and variables → Actions → New repository secret: `AUDIO_DATABASE_URL` = that string. Do not put it in `.env` or Vercel.
 4. Merge the pull request (it edits `audio.yml`, `run.yml` and `podcast.yml`, which only you can merge). Nothing changes until the repository variable `SINGULARITY_STATE_STORE` is `postgres`, which a later change sets once every job saves its state.
-5. Check the login from the Neon SQL editor with `set role audio_state; select path from state_documents;`: it lists only `state/costs-...` and `state/usage.json` rows, however many others exist.
+5. Check the login with the secret's own string, since a wrong password or host would stop the audio job: from a terminal, `psql '<the AUDIO_DATABASE_URL string>' -c 'select path from state_documents'`. It connects and lists only `state/costs-...` and `state/usage.json` rows, however many others exist.
 
 To rotate: `alter role audio_state password '<new>'`, then update the secret. To remove: `drop owned by audio_state; drop role audio_state;` and delete the secret.
