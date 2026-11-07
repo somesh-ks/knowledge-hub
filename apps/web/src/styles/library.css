@@ -668,6 +668,18 @@ main.library [data-library][data-view="list"] .library-grid {
   opacity: 1;
 }
 
+/* The ring takes the tile's shape, as a DS row's does (.row-action, primitives.css): on the link's
+   own box it ran 2px off the cover, round the cover's corner (owner, 2026-11-07: no gap on the left). */
+[data-library][data-view="list"] .card-link:focus-visible {
+  outline: none;
+}
+
+[data-library][data-view="list"] .card-link:focus-visible::after {
+  opacity: 1;
+  outline: var(--stroke-ring) solid var(--color-focus-ring);
+  outline-offset: calc(var(--stroke-ring) * -1);
+}
+
 /* The whole title, over one line or two: no clamp. */
 [data-library][data-view="list"] .card-title {
   grid-area: 2 / 2;
