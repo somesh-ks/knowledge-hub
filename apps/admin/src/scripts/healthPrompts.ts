@@ -10,7 +10,7 @@ import { type Problem, problemText } from "../lib/problem";
 import type { Tone } from "./healthRing";
 import { type Issue, nameOf } from "./healthSummary";
 
-const REPO = "somesh-ks/knowledge-hub";
+const REPO = "somesh-ks/singularityfm-app";
 const STATE: Record<Tone, string> = {
   bad: "failing",
   warn: "needs a look",

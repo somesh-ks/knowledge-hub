@@ -4,7 +4,7 @@ Operations for the owner. Short, imperative, in the order you need it.
 
 Status: updated 2026-10-06 against the built code. Correct a step here when it turns out wrong. `npm run singularity -- <command>` runs the engine CLI; `--help` on any command lists its flags.
 
-Repository: `somesh-ks/knowledge-hub` (private). Site: `news.someshks.work`.
+Repository: `somesh-ks/singularityfm-app` (public, D298; renamed from `knowledge-hub`, D382). Site: `news.someshks.work`.
 
 ---
 
@@ -62,7 +62,7 @@ npm run singularity -- eval --yes --only bakeoff --models <id>,<id>
 
 Vercel deploys through its GitHub integration (D25). No Vercel token is needed in GitHub or `.env`.
 
-1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `knowledge-hub`. Name the project `knowledge-hub`; the production branch is `main`.
+1. In the Vercel dashboard, choose Add New, Project, and import the GitHub repo `singularityfm-app`. Name the project `knowledge-hub` (the Vercel project kept its name when the repo was renamed, D382); the production branch is `main`.
 2. Set Root Directory to `apps/web`. Leave "Include source files outside the Root Directory" on (the default). `apps/web/vercel.json` already sets the install, build and ignore commands.
 3. Add the two Vercel environment variables (`GITHUB_SINGULARITY_TOKEN`, `GITHUB_REPOSITORY`) in section 1.9, or by hand in the dashboard.
 4. Hobby deploys only commits authored by the Hobby team owner. The GitHub login connected to Vercel must be the account that owns the team, and it must match the committer. The engine commits as that owner through the GitHub Actions variables `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL`, which section 1.9 sends. If both are unset the engine commits as `singularity-bot`, and Hobby blocks those deploys.
@@ -100,9 +100,9 @@ Do not add `www.news.someshks.work`. Do not turn the Cloudflare proxy on.
 ### 1.7 Create the GitHub token
 
 1. In GitHub, open Settings, Developer settings, Fine-grained personal access tokens.
-2. Create a token with resource owner `somesh-ks`, access to the `knowledge-hub` repository only, and these repository permissions: Actions read and write, Variables read and write, Contents read. Nothing else.
+2. Create a token with resource owner `somesh-ks`, access to the `singularityfm-app` repository only, and these repository permissions: Actions read and write, Variables read and write, Contents read. Nothing else.
 3. Set an expiry and record it in section 6.
-4. Put the token in `.env` as `GITHUB_SINGULARITY_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/knowledge-hub`.
+4. Put the token in `.env` as `GITHUB_SINGULARITY_TOKEN`. Set `GITHUB_REPOSITORY=somesh-ks/singularityfm-app`.
 
 ### 1.8 No passphrase
 
@@ -118,8 +118,8 @@ Run this after sections 1.2 to 1.8. The Vercel part needs the project from secti
 4. Check the names arrived:
 
 ```bash
-gh secret list -R somesh-ks/knowledge-hub
-gh variable list -R somesh-ks/knowledge-hub
+gh secret list -R somesh-ks/singularityfm-app
+gh variable list -R somesh-ks/singularityfm-app
 ```
 
 For the Vercel side, open the project's Settings, Environment Variables in the dashboard (or run `npx vercel link` once, choose the existing `knowledge-hub` project, then `cd apps/web && npx vercel env ls production`).
@@ -131,16 +131,16 @@ Run `npm run singularity -- doctor --online`. It checks Node, git, config, state
 ### 1.11 Push `main` and deploy
 
 1. Push the code: `git push origin main`. The workflows must be on the default branch before `gh workflow run` can start them.
-2. The push starts a Vercel build and deploy; `ci.yml` ran on the pull request (D148). Vercel does not wait for `ci.yml`, so a failing check does not stop a deploy. To audio-process by hand, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`.
-3. Watch the checks: `gh run watch -R somesh-ks/knowledge-hub`. Watch the deploy in the Vercel dashboard. This is the first live build of the `apps/web` workspace through the Git integration, so read any build error there.
+2. The push starts a Vercel build and deploy; `ci.yml` ran on the pull request (D148). Vercel does not wait for `ci.yml`, so a failing check does not stop a deploy. To audio-process by hand, run `gh workflow run audio.yml -R somesh-ks/singularityfm-app`.
+3. Watch the checks: `gh run watch -R somesh-ks/singularityfm-app`. Watch the deploy in the Vercel dashboard. This is the first live build of the `apps/web` workspace through the Git integration, so read any build error there.
 4. Open `https://news.someshks.work`. With no digest yet it shows "No briefings yet".
 
 ### 1.12 First manual run
 
 ```bash
-gh workflow run run.yml -R somesh-ks/knowledge-hub -f mode=on-demand
-gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 1
-gh run watch <run id> -R somesh-ks/knowledge-hub
+gh workflow run run.yml -R somesh-ks/singularityfm-app -f mode=on-demand
+gh run list -R somesh-ks/singularityfm-app --workflow run.yml --limit 1
+gh run watch <run id> -R somesh-ks/singularityfm-app
 ```
 
 Add `-f dry_run=true` to run every stage with nothing written or pushed. It still spends API credit. A real run commits `chore(digest): <date>`, then Vercel deploys the text within minutes. `audio.yml` narrates, uploads and pushes the timeline, and a second Vercel deploy adds the audio, so the player shows no audio until then. If the outcome is `nothing`, the first window was quiet; run again with `-f since=<date>` for a wider window.
@@ -221,9 +221,9 @@ Pick one. Each starts `run.yml` with `mode=on-demand`, which skips the gate.
 2. **GitHub CLI.**
 
 ```bash
-gh workflow run run.yml -R somesh-ks/knowledge-hub -f mode=on-demand
-gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 1
-gh run watch <run id> -R somesh-ks/knowledge-hub
+gh workflow run run.yml -R somesh-ks/singularityfm-app -f mode=on-demand
+gh run list -R somesh-ks/singularityfm-app --workflow run.yml --limit 1
+gh run watch <run id> -R somesh-ks/singularityfm-app
 ```
 
 Other inputs on `run.yml`: `mode` (`on-demand`, `scheduled`, `weekly`), `force`, `since` and `dry_run`. From a clone, `/digest` runs it locally, in agent mode, or remotely.
@@ -234,8 +234,8 @@ A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest
 
 ## 5. Read a failed run
 
-1. Find the run: `gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 5`.
-2. Show the failing step: `gh run view <run id> -R somesh-ks/knowledge-hub --log-failed | head -n 60`.
+1. Find the run: `gh run list -R somesh-ks/singularityfm-app --workflow run.yml --limit 5`.
+2. Show the failing step: `gh run view <run id> -R somesh-ks/singularityfm-app --log-failed | head -n 60`.
 3. Read the job summary on the run page. It lists counts and source status only.
 4. Match the failing step:
 
@@ -249,7 +249,7 @@ A second run on the same day writes `YYYY-MM-DD-2`. It never overwrites a digest
 | `audio.yml`: Audio | A refused commit or a push that failed after three rebase retries. A failed narration, a missing key or a failed prune is only a warning | Section 8.2 |
 | Vercel deploy (not a workflow step) | A build error, or a skipped or blocked deploy; read it in the Vercel dashboard | Section 8.5 |
 
-5. Rerun only the failed jobs: `gh run rerun <run id> -R somesh-ks/knowledge-hub --failed`.
+5. Rerun only the failed jobs: `gh run rerun <run id> -R somesh-ks/singularityfm-app --failed`.
 
 Logs redact known key patterns. If you see a key in a log anyway, revoke it first, then rotate it (section 6).
 
@@ -291,7 +291,7 @@ When `GITHUB_SINGULARITY_TOKEN` expires, the Generate button stops working ("The
 Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at the engine's 128 kbps default, so audio uploaded more than 120 days ago is deleted.
 
 - `audio.yml` calls `singularity publish --prune 120`, and the prune itself runs on Sundays (UTC), because listing `audio/` costs Blob operations. A scheduled run at 03:17 UTC on Sundays makes sure it happens even in a week with no publish.
-- To prune now, run `gh workflow run audio.yml -R somesh-ks/knowledge-hub -f prune_now=true`.
+- To prune now, run `gh workflow run audio.yml -R somesh-ks/singularityfm-app -f prune_now=true`.
 - A pruned digest keeps its text, its timeline and its `audio` field. Its player reports that the audio is not available.
 - Check usage in the Vercel dashboard under Storage. If usage nears 1 GB, shorten the retention in `audio.yml`.
 
@@ -302,15 +302,15 @@ Vercel Hobby holds 1 GB of Blob storage. A four-minute digest is about 4 MB at t
 ### 8.1 A digest did not arrive
 
 1. Run `npm run singularity -- status`. A regular digest is due every second day, so a quiet day can be correct (`gated`).
-2. Check the last runs: `gh run list -R somesh-ks/knowledge-hub --workflow run.yml --limit 5`.
+2. Check the last runs: `gh run list -R somesh-ks/singularityfm-app --workflow run.yml --limit 5`.
 3. No run at 07:13: GitHub can delay or drop scheduled runs. The next daily trigger widens the window, so nothing is lost. Start an on-demand run to get it now.
 4. Run exists but the outcome is `nothing`: fewer than three items cleared the bar. Normal on a quiet day.
 5. Outcome is `failed`: read the run (section 5).
-6. Workflow disabled: `gh workflow list -R somesh-ks/knowledge-hub --all`. Enable it with `gh workflow enable run.yml -R somesh-ks/knowledge-hub`.
+6. Workflow disabled: `gh workflow list -R somesh-ks/singularityfm-app --all`. Enable it with `gh workflow enable run.yml -R somesh-ks/singularityfm-app`.
 
 ### 8.2 Audio is missing
 
-1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run audio.yml -R somesh-ks/knowledge-hub`. `singularity publish` retries every digest whose `audio` is null.
+1. The page says "Audio is still being prepared": the text digest published but speech failed (D23). Run `gh workflow run audio.yml -R somesh-ks/singularityfm-app`. `singularity publish` retries every digest whose `audio` is null.
 2. Still failing: check the month's count in `state/usage-<month>.json` with Blob, or `state/usage.json` without (health reports it). The engine stops at 90 percent of the monthly Speechify allowance (`SPEECHIFY_MONTHLY_CHARS`, default 500,000). Wait for the next month or raise the plan.
 3. A recent digest points at a deleted Blob file: delete its `.audio.json`, set `audio: null` in the digest frontmatter, commit, then run `audio.yml`.
 4. An old digest has no working player: its audio was pruned. That is expected (section 7).
@@ -330,7 +330,7 @@ Models are resolved at run start from the providers' lists. Symptoms: the run lo
 ### 8.5 The site did not update
 
 1. Open the project's Deployments in the Vercel dashboard and read the latest deployment. After a run concludes, the site updates when Vercel finishes, usually a minute or two.
-2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL` are set (`gh variable list -R somesh-ks/knowledge-hub`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
+2. No deployment appeared, or it says blocked: Hobby accepts only commits authored by the team owner. Check that `SINGULARITY_GIT_NAME` and `SINGULARITY_GIT_EMAIL` are set (`gh variable list -R somesh-ks/singularityfm-app`), that the commit author is the owner, and that the GitHub login connected to Vercel matches.
 3. A deployment shows as skipped (Canceled by Ignored Build Step): the push touched nothing the site reads, which is expected for `state`, `config`, docs and `.github`. A push that did touch code is also skipped while it waits for the batch: five merges, three hours, or `[deploy]` in a commit since the last deploy (D375, `scripts/deploy-batch.sh`). The three hours are judged only when some push to main runs the script, so on a quiet night push again or use `[deploy]` before suspecting the `ignoreCommand`; `site_behind` warns only after six hours. To ship a merge at once, merge with `[deploy]` at the end of the PR title; for one already made, ask any session to merge a one-line docs change titled `docs: deploy now [deploy]`. If a code push stayed skipped past the batch, check the `ignoreCommand` in `apps/web/vercel.json`; `singularity health` warns `site_behind` when this happens, and faults (the `health` issue) once the oldest commit the site lacks is a day old (D159). Vercel refuses an `ignoreCommand` over 256 characters (the whole deploy fails), so keep it short. Hobby also refuses every deploy at 100 in a rolling 24 hours, cancelled builds included ("Deployment rate limited"); `health` warns `deploy_rate` at 70 (D247), and the cure is to find the project that builds more than merges explain.
 4. A build error about missing packages or paths: check Root Directory is `apps/web`, "Include source files outside of the Root Directory" is on, and the `installCommand` in `apps/web/vercel.json` runs `npm ci` from the repository root.
 5. `news.someshks.work` shows an old page but the deploy succeeded: wait a minute, then hard refresh. Check that the DNS record is DNS only. A proxied record (orange cloud) breaks certificate issuance.
@@ -374,7 +374,7 @@ Git holds the code, state and docs. It does not hold secrets (`.env`, GitHub sec
 | --- | --- |
 | A bad digest | Delete it in the app (or run `delete` on `run.yml`) and run again. It is no longer in git, so a revert does not bring back an older one |
 | A bad edit to one file | `git checkout <sha> -- <path>`, commit, push |
-| Laptop lost | Clone `https://github.com/somesh-ks/knowledge-hub.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
+| Laptop lost | Clone `https://github.com/somesh-ks/singularityfm-app.git`, run `npm ci`, recreate `.env` from the services (reissue keys if needed), run `npm run secrets:push` only if the stores lost their values |
 | GitHub repository lost | Any clone is a full copy. Create a new private repository, push, then repeat section 1.9 and update `GITHUB_REPOSITORY` |
 | Audio lost | Digests are in the content store, not git. Run `content pull`, delete the digest's `.audio.json` locally, set `audio: null` in its `.md`, then `content put <path of the .md>` and `content remove <path of the .audio.json>` (in that order, so a failure between them never leaves a digest pointing at a missing file), and run `audio.yml`. It regenerates at a cost in Speechify characters |
 | Vercel project lost | Repeat sections 1.4 to 1.6 and 1.9, then push to `main` or redeploy from the dashboard |
@@ -418,7 +418,7 @@ If the database is down while the store is on, pages show the build's copy and a
 
 `main` is protected by a GitHub ruleset, kept as `.github/rulesets/main.json` so it is reviewed like code and can be re-imported. Rulesets on a private repository need GitHub Pro; the page says so if the plan lacks it.
 
-1. Settings → Rules → Rulesets → New ruleset → Import a ruleset → choose `.github/rulesets/main.json` → Create. Or with the API: `gh api -X POST repos/somesh-ks/knowledge-hub/rulesets --input .github/rulesets/main.json`.
+1. Settings → Rules → Rulesets → New ruleset → Import a ruleset → choose `.github/rulesets/main.json` → Create. Or with the API: `gh api -X POST repos/somesh-ks/singularityfm-app/rulesets --input .github/rulesets/main.json`.
 2. What it holds, and why each rule is there:
    - No deletion, no force push, linear history: `main`'s record is append-only; PRs land as squash merges (the only merge method the rule allows), which is how they have landed so far.
    - Every change goes through a pull request with its review threads resolved. No human approval count: one owner cannot approve their own PR, and code review is CodeRabbit (D143, D192).
@@ -473,3 +473,16 @@ Do this only after section 14 is done and its pull request is merged, and not ne
 4. Check it worked: start a `dry_run` daily (Actions → run). The Gate log has a `state store:` line and the Commit step is green. Then in the Neon SQL editor, as the owner role: `select path, version, updated_at from state_documents order by updated_at desc limit 5`. The newest `state/costs-...json` row has the time of that dry run.
 
 To turn it off: delete the variable. The jobs go back to the files in git, which still carry every run (D300 step 5 stops that, later). The rows then fall behind, and switching on again without clearing them would write old `seen.json` and `judgments.json` over newer files. So before switching on again, clear the table as the owner role (`delete from state_documents`) and repeat steps 1 to 3.
+
+## 15. Rename the repository to `singularityfm-app` (D382, once)
+
+Do these in order. GitHub redirects the old address for git, the web pages and the API; Vercel, the Claude GitHub App and CodeRabbit follow the repository by its id.
+
+1. GitHub: Settings → General → Repository name → `singularityfm-app` → Rename.
+2. In `.env`, set `GITHUB_REPOSITORY=somesh-ks/singularityfm-app`, then run `npm run secrets:push`. The site starts Regenerate and Catch up runs with it, so do this right after step 1.
+3. Merge the rename pull request (it edits `AGENTS.md`, which only you merge).
+4. On each machine: `git remote set-url origin https://github.com/somesh-ks/singularityfm-app.git`.
+5. Claude project settings → Repositories: replace the old address with the new one.
+6. Check: GitHub → Settings → Developer settings → the site's fine-grained token still lists `singularityfm-app`; one Regenerate from the site starts a run.
+
+Never create a new repository called `knowledge-hub`: it ends the redirect for every old link.
