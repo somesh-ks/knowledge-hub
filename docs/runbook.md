@@ -462,3 +462,14 @@ create policy audio_state_rows on state_documents to audio_state
 5. Check the login with the secret's own string, since a wrong password or host would stop the audio job: from a terminal, `psql '<the AUDIO_DATABASE_URL string>' -c 'select path from state_documents'`. It connects and lists only `state/costs-...` and `state/usage.json` rows, however many others exist.
 
 To rotate: `alter role audio_state password '<new>'`, then update the secret. To remove: `drop owned by audio_state; drop role audio_state;` and delete the secret.
+
+### 14.1 Turn the run state on (D381, once)
+
+Do this only after section 14 is done and its pull request is merged, and not near the daily run (check the Actions tab: nothing running or queued). While `state/` is still in git, git and the rows must be equal at the moment of the switch.
+
+1. Actions → seed → Run workflow with `dry_run` on. Its last step, "Seed the run state", lists the files it would write.
+2. Run it again with `dry_run` off. The step now writes one row per `state/*.json` on `main` and never replaces a row.
+3. Settings → Secrets and variables → Actions → Variables → New repository variable: `SINGULARITY_STATE_STORE` = `postgres`. Do this straight after step 2.
+4. Check on the next run (a `dry_run` of the daily is enough): the Gate step's log has a `state store:` line, and the Commit step does not end in `push_failed`. The audio job's log shows the same line.
+
+To turn it off: delete the variable. The jobs go back to the files in git, which still carry every run (step 5 of D300 stops that, later). Rows then fall behind; seed never replaces them, so before switching on again clear the table (`delete from state_documents` as the owner role) and repeat steps 1 to 3.

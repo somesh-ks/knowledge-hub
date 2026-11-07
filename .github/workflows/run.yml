@@ -183,6 +183,10 @@ jobs:
           DELETE_ID: ${{ inputs.delete }}
           SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME }}
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
+          # The run state (D381): the step pulls or saves it through the shared store while the switch is
+          # on, and does nothing while it is off. Git still carries the same files (step 5 stops that).
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
         run: npm run --silent singularity -- run --delete "$DELETE_ID" --json
 
       - name: Gate
@@ -202,6 +206,8 @@ jobs:
           # config/ before the run reads it. Either one unset leaves the run on the committed files.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SINGULARITY_CONFIG_STORE: ${{ vars.SINGULARITY_CONFIG_STORE }}
+          # The run state (D381), the same switch: the gate copies it over state/ before the run reads it.
+          SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
         run: |
           args=(--mode "$MODE" --json)
           [ "$FORCE" = "true" ] && args+=(--force)
@@ -309,6 +315,10 @@ jobs:
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
           # The digest is saved to the content store right before its git commit (D300).
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          # The run state (D381): the step pulls or saves it through the shared store while the switch is
+          # on, and does nothing while it is off. Git still carries the same files (step 5 stops that).
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
         run: |
           npm run --silent singularity -- run --stage commit --json | tee "$RUNNER_TEMP/commit.json"
           echo "outcome=$(jq -r '.outcome' "$RUNNER_TEMP/commit.json")" >> "$GITHUB_OUTPUT"
@@ -332,6 +342,10 @@ jobs:
           DRY: ${{ inputs.dry_run }}
           SINGULARITY_GIT_NAME: ${{ vars.SINGULARITY_GIT_NAME }}
           SINGULARITY_GIT_EMAIL: ${{ vars.SINGULARITY_GIT_EMAIL }}
+          # The run state (D381): the step pulls or saves it through the shared store while the switch is
+          # on, and does nothing while it is off. Git still carries the same files (step 5 stops that).
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SINGULARITY_STATE_STORE: ${{ vars.SINGULARITY_STATE_STORE }}
         run: |
           [ "$INSTALLED" = "success" ] || npm ci --ignore-scripts --workspace=packages/engine --include-workspace-root
           args=(--mode "$MODE" --json)
