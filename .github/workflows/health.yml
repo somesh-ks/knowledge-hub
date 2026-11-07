@@ -83,7 +83,7 @@ jobs:
         # apps/web brings Playwright, which only the probe needs.
         run: >-
           pnpm install --frozen-lockfile --ignore-scripts --filter . --filter @singularity/engine...
-          ${{ steps.probe.outputs.run == 'true' && '--workspace=apps/web' || '' }}
+          ${{ steps.probe.outputs.run == 'true' && '--filter @singularity/web' || '' }}
 
       # Digests and episodes are in the content store, not in git (D300); the checks read them.
       - name: Load content

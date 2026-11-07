@@ -20,7 +20,7 @@ Never paste a key into chat. The agent cannot read `.env`; keep it that way.
 
 ### 1.1 Prerequisites
 
-1. Install Node 24 or newer (`.nvmrc` pins the version).
+1. Install Node 24 (`.nvmrc` pins the version). Node 25 and later ship without Corepack: run `npm install -g corepack` first.
 2. Run `corepack enable` once (it gives you the pnpm version `package.json` pins), then from the repository root run `pnpm install --frozen-lockfile`.
 3. Log in to GitHub: `gh auth login`.
 4. Optional: log in to Vercel (`npx vercel login`) to use the CLI for the Blob store or env checks. Creating the project needs only the dashboard.

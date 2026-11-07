@@ -51,7 +51,7 @@ jobs:
           fi
           # The browser suites are the only checks that see CSS and layout: any change the site is
           # built from may need them: the site, packages, tokens, build scripts, lockfile and workflows.
-          if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|scripts/build|package(-lock)?\.json$|tsconfig|\.nvmrc$|\.github/workflows/(ci|browser)\.yml$)'; then
+          if printf '%s\n' "$changed" | grep -qE '^(apps/web/|packages/|tokens/|scripts/build|package\.json$|pnpm-(lock|workspace)\.yaml$|tsconfig|\.nvmrc$|\.github/workflows/(ci|browser)\.yml$)'; then
             echo "web=true" >> "$GITHUB_OUTPUT"
           else
             echo "web=false" >> "$GITHUB_OUTPUT"
